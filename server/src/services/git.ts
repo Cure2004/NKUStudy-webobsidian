@@ -92,11 +92,13 @@ function withGitLock<T>(fn: () => Promise<T>): Promise<T> {
 export const status = (): Promise<GitStatus> => withGitLock(statusImpl);
 export const pull = (): Promise<string> => withGitLock(pullImpl);
 export const push = (branch?: string): Promise<string> => withGitLock(() => pushImpl(branch));
-export const commitAll = (message?: string): Promise<string> => withGitLock(() => commitAllImpl(message));
+export const commitAll = (message?: string, paths?: string[]): Promise<string> =>
+  withGitLock(() => commitAllImpl(message, paths));
 export const init = (): Promise<void> => withGitLock(initImpl);
 export const clone = (): Promise<void> => withGitLock(cloneImpl);
-export const sync = (message?: string, branch?: string): Promise<{ ok: boolean; log: string[] }> =>
-  withGitLock(() => syncImpl(message, branch));
+export const sync = (message?: string, branch?: string, paths?: string[]): Promise<{ ok: boolean; log: string[] }> =>
+  withGitLock(() => syncImpl(message, branch, paths));
+export const changes = (): Promise<GitChange[]> => withGitLock(changesImpl);
 
 /** Compose an authenticated remote URL from settings (PAT embedded). */
 async function authedRemote(): Promise<string> {
@@ -314,16 +316,68 @@ async function pullImpl(): Promise<string> {
   const res = await g.pull('origin', branch, {
     '--no-rebase': null,
     '--allow-unrelated-histories': null,
+    // 部分提交后，未勾选的文件仍是「未提交改动」，会阻止 pull 的 merge。
+    // --autostash 会临时 stash 这些改动、pull 完再恢复，保证投稿流程不中断。
+    '--autostash': null,
   });
   if (await lfsAvailable()) await g.raw(['lfs', 'pull']).catch(() => {});
   return `Pulled: ${res.summary.changes} changes, +${res.summary.insertions}/-${res.summary.deletions}`;
 }
 
+/** 单个工作区变更（供前端展示 git 风格的文件列表）。 */
+export interface GitChange {
+  path: string; // 相对仓库根
+  /** 变更类型：新增/修改/删除/改名/复制/冲突。 */
+  kind: 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'conflicted';
+  /** 该文件是否已在暂存区。 */
+  staged: boolean;
+}
+
+/** 把 simple-git 的状态字母映射为变更类型。 */
+function changeKind(f: { index?: string; working_dir?: string }): GitChange['kind'] {
+  const x = (f.index?.trim() || f.working_dir?.trim() || '').toUpperCase();
+  if (x === 'A' || x === '?') return 'added';
+  if (x === 'D') return 'deleted';
+  if (x === 'R') return 'renamed';
+  if (x === 'C') return 'copied';
+  if (x === 'U') return 'conflicted';
+  return 'modified';
+}
+
+/** 列出工作区所有变更（含未跟踪文件），供提交对话框展示与勾选。 */
+async function changesImpl(): Promise<GitChange[]> {
+  const g = await git();
+  if (!(await isRepo(g))) return [];
+  const st = await g.status();
+  return st.files.map((f) => ({
+    path: f.path,
+    kind: changeKind(f),
+    // index 非空/非 '?' 表示已暂存（' ' 或 '?' 表示未暂存）。
+    staged: Boolean(f.index && f.index.trim() && f.index !== '?'),
+  }));
+}
+
 /**
- * Build a human-readable commit message from what `git add .` staged, so the
- * vault history (and the Version History UI) shows exactly which notes synced
- * instead of a generic "WebObsidian auto-sync". Returns a one-line subject that
- * names the notes plus a body listing every changed path grouped by kind.
+ * 只暂存指定路径（VS Code 式部分提交）。先清空暂存区，再按路径 `git add -A`
+ * （同时覆盖新增/修改/删除）。paths 为空时回退为暂存全部。
+ */
+async function stagePaths(g: SimpleGit, paths: string[]): Promise<void> {
+  if (!paths.length) {
+    await g.add('.');
+    return;
+  }
+  // 清空暂存区，保证「只提交勾选的文件」语义可预测（本应用不依赖既有暂存状态）。
+  await g.raw(['reset']).catch(() => {});
+  // 过滤掉空串与可疑的绝对路径；`--` 之后一律按路径处理。
+  const clean = paths.map((p) => String(p)).filter((p) => p && !p.startsWith('/') && !p.includes('\0'));
+  await g.raw(['add', '-A', '--', ...clean]);
+}
+
+/**
+ * Build a human-readable commit message from what was staged, so the vault
+ * history (and the Version History UI) shows exactly which notes synced instead
+ * of a generic "WebObsidian auto-sync". Returns a one-line subject that names
+ * the notes plus a body listing every changed path grouped by kind.
  */
 export function describeChanges(st: StatusResult): { subject: string; body: string } {
   const added: string[] = [];
@@ -331,10 +385,12 @@ export function describeChanges(st: StatusResult): { subject: string; body: stri
   const deleted: string[] = [];
   const renamed: string[] = [];
   for (const f of st.files) {
-    // `index` is the staged status; fall back to working-tree status. '?' = new
-    // untracked file (becomes 'A' after add, but be defensive), 'C' = copied.
-    const x = (f.index?.trim() || f.working_dir?.trim() || '').toUpperCase();
-    if (x === 'A' || x === '?' || x === 'C') added.push(f.path);
+    // 只看「已暂存」的文件：部分提交时未勾选的文件仍在工作区，不应写进提交信息。
+    // index 为 ' ' 或 '?' 表示未暂存（'?' = 未跟踪的新文件）。
+    const idx = (f.index ?? '').trim();
+    if (!idx || idx === '?') continue;
+    const x = idx.toUpperCase();
+    if (x === 'A' || x === 'C') added.push(f.path);
     else if (x === 'D') deleted.push(f.path);
     else if (x === 'R') renamed.push(f.path);
     else modified.push(f.path);
@@ -381,13 +437,15 @@ export function describeChanges(st: StatusResult): { subject: string; body: stri
   return { subject, body };
 }
 
-async function commitAllImpl(message?: string): Promise<string> {
+async function commitAllImpl(message?: string, paths?: string[]): Promise<string> {
   const g = await git();
   await configureIdentity(g);
   await ensureLfsAttributes();
-  await g.add('.');
+  // 指定 paths 时只暂存这些文件（部分提交）；否则暂存全部。
+  await stagePaths(g, paths ?? []);
   const st = await g.status();
-  if (st.staged.length === 0 && st.isClean()) return 'Nothing to commit';
+  // 没有暂存内容 → 无需提交（勾选的文件可能没有实际改动）。
+  if (st.staged.length === 0) return 'Nothing to commit';
   const { subject, body } = describeChanges(st);
   // A caller-supplied message (e.g. a manual commit with a typed message) wins
   // as the subject; otherwise auto-derive one naming the notes. The file list
@@ -505,7 +563,11 @@ async function recoverMerge(g: SimpleGit): Promise<void> {
 /** Convenience: stage+commit+pull+push in one go. Reports conflicts. Runs entirely
  *  inside the git queue (via the exported `sync` wrapper), so it calls the unlocked
  *  *Impl helpers directly — re-entering withGitLock here would dead-lock. */
-async function syncImpl(message?: string, branchOverride?: string): Promise<{ ok: boolean; log: string[] }> {
+async function syncImpl(
+  message?: string,
+  branchOverride?: string,
+  paths?: string[],
+): Promise<{ ok: boolean; log: string[] }> {
   const log: string[] = [];
   const g = await git();
   if (!(await isRepo(g))) {
@@ -513,7 +575,7 @@ async function syncImpl(message?: string, branchOverride?: string): Promise<{ ok
     log.push('Initialized repository');
   }
   await recoverMerge(g); // unwedge a prior stuck merge before doing anything
-  log.push(await commitAllImpl(message || ''));
+  log.push(await commitAllImpl(message || '', paths));
   try {
     log.push(await pullImpl());
   } catch (e: any) {

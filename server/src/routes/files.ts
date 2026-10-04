@@ -13,6 +13,7 @@ import { onFileRenamed } from '../services/shares.js';
 import { mimeFor } from '../services/mime.js';
 import { sendFileWithRange } from '../services/httpfile.js';
 import { uploadImage, UploadError } from '../services/upload.js';
+import { assertGuestWritableContent } from '../services/guestpath.js';
 
 export const filesRouter = Router();
 filesRouter.use(requireAuth);
@@ -25,31 +26,8 @@ const isMd = (p: string) => /\.(md|markdown)$/i.test(p);
 const safeUploadName = (name: string): string =>
   path.posix.basename(String(name ?? '').replace(/\\/g, '/')).replace(/^\.+/, '') || 'file';
 
-/**
- * 访客（公开编辑）只能改动 publicEditor.editableRoot 下的路径。
- * 注意：路径是相对内容根目录（vault.root，如 docs/start）的，而 editableRoot
- * 是相对仓库根的（如 docs/start）。这里统一换算成「相对内容根」来比较：
- *   内容根 = vault.root（相对仓库根）
- *   允许前缀 = editableRoot 去掉 vault.root 前缀后的部分
- * 例：vault.root=docs/start、editableRoot=docs/start → 允许前缀 = ''（全部可编辑）。
- *     vault.root=''、editableRoot=docs/start → 允许前缀 = 'docs/start'。
- */
-async function assertGuestWritable(rel: string): Promise<void> {
-  const s = await getSettings();
-  const repoRoot = (s.vault.root ?? '').trim().replace(/^[/\\]+|[/\\]+$/g, '');
-  const editable = (s.publicEditor.editableRoot ?? '').trim().replace(/^[/\\]+|[/\\]+$/g, '');
-  // 计算 editableRoot 相对内容根的允许前缀。
-  let allowPrefix = editable;
-  if (repoRoot) {
-    if (editable === repoRoot) allowPrefix = '';
-    else if (editable.startsWith(repoRoot + '/')) allowPrefix = editable.slice(repoRoot.length + 1);
-    else allowPrefix = editable; // 不相交：按原样比较（通常不会发生）
-  }
-  const clean = rel.replace(/^[/\\]+/, '');
-  if (allowPrefix && !(clean === allowPrefix || clean.startsWith(allowPrefix + '/'))) {
-    throw Object.assign(new Error('公开编辑仅允许修改指定目录'), { status: 403 });
-  }
-}
+/** 访客（公开编辑）只能改动 publicEditor.editableRoot 下的路径。 */
+const assertGuestWritable = assertGuestWritableContent;
 
 /** 访客写操作守卫：仅 guest 受限，owner 不受限。 */
 function guestWriteGuard(req: Request, res: Response, next: NextFunction): void {

@@ -4,6 +4,7 @@ import { requireAuth, requireOwner, denyGuest } from '../middleware/auth.js';
 import * as git from '../services/git.js';
 import { COMMIT_PREFIXES, buildCommitMessage, CommitTemplateError } from '../services/commitTemplate.js';
 import { isGithubAppConfigured } from '../services/githubApp.js';
+import { assertGuestWritableRepo, isGuestWritableRepo } from '../services/guestpath.js';
 
 export const gitRouter = Router();
 // 允许 owner 与（公开编辑开启时的）guest；敏感操作再单独 requireOwner。
@@ -13,6 +14,23 @@ gitRouter.use(requireAuth);
 gitRouter.get('/commit-prefixes', (_req, res) => {
   res.json({ prefixes: COMMIT_PREFIXES });
 });
+
+// 工作区变更列表（git 风格）。访客只看到可编辑目录内的变更。
+gitRouter.get(
+  '/changes',
+  asyncHandler(async (req, res) => {
+    const all = await git.changes();
+    if (req.sessionRole !== 'guest') {
+      res.json({ changes: all });
+      return;
+    }
+    const visible = [];
+    for (const c of all) {
+      if (await isGuestWritableRepo(c.path)) visible.push(c);
+    }
+    res.json({ changes: visible });
+  }),
+);
 
 gitRouter.get(
   '/log',
@@ -44,7 +62,7 @@ gitRouter.post(
       res.status(400).json({ error: message.message });
       return;
     }
-    const out = await git.commitAll(message);
+    const out = await git.commitAll(message, normalizePaths(req.body?.paths));
     console.log('[git] commit:', out);
     res.json({ message: out });
   }),
@@ -61,8 +79,23 @@ gitRouter.post(
       return;
     }
     const branch = req.sessionRole === 'guest' ? 'web-edit' : undefined;
+    let paths = normalizePaths(req.body?.paths);
+    // 访客：只能提交可编辑目录内的变更。勾选的路径必须都在该目录内；未指定
+    // paths 时，自动收敛为「可编辑目录内的全部变更」，绝不放行越界内容。
+    if (req.sessionRole === 'guest') {
+      if (paths) {
+        for (const p of paths) await assertGuestWritableRepo(p);
+      } else {
+        const all = await git.changes();
+        const allowed: string[] = [];
+        for (const c of all) {
+          if (await isGuestWritableRepo(c.path)) allowed.push(c.path);
+        }
+        paths = allowed;
+      }
+    }
     console.log('[git] manual sync requested');
-    const result = await git.sync(message, branch);
+    const result = await git.sync(message, branch, paths);
     console.log(`[git] sync ${result.ok ? 'ok' : 'not-ok'}:`, result.log.join(' | '));
     res.json(result);
   }),
@@ -126,6 +159,16 @@ gitRouter.post(
     res.json({ message });
   }),
 );
+
+/**
+ * 规范化请求里的 paths：必须是字符串数组。返回 undefined 表示「全部提交」，
+ * 返回数组（可能为空）表示「只提交这些路径」。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizePaths(raw: any): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter((p): p is string => typeof p === 'string' && p.trim() !== '');
+}
 
 /** 解析提交信息：支持 { prefix, description } 模板或 { message }。 */
 function resolveMessage(body: any): string | CommitTemplateError {
