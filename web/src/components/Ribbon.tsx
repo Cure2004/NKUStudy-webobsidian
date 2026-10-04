@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api } from '../lib/api';
+import { t } from '../lib/i18n';
 import Icon from './Icon';
 
 export default function Ribbon({ onTheme }: { onTheme: () => void }) {
@@ -12,6 +13,7 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
   const openDailyNote = useStore((s) => s.openDailyNote);
   const notify = useStore((s) => s.notify);
   const loadTree = useStore((s) => s.loadTree);
+  const setCommitDialog = useStore((s) => s.setCommitDialog);
 
   // Show the Sync-now button only when git sync is enabled in settings.
   const [gitEnabled, setGitEnabled] = useState(false);
@@ -26,13 +28,13 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
   const sync = async () => {
     if (syncing) return;
     setSyncing(true);
-    notify('Syncing…');
+    notify(t('Syncing…'));
     try {
       const r = await api.gitSync();
-      notify(r.ok ? 'Synced ✓' : `Sync: ${r.log.at(-1)}`);
+      notify(r.ok ? t('Synced ✓') : t('Sync: {msg}', { msg: r.log.at(-1) ?? '' }));
       await loadTree();
     } catch (e: any) {
-      notify(`Sync failed: ${e.message}`);
+      notify(t('Sync failed: {msg}', { msg: e.message }));
     } finally {
       setSyncing(false);
     }
@@ -40,37 +42,42 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
 
   return (
     <div className="ribbon">
-      <button className={leftPanel === 'files' ? 'active' : ''} title="Files" onClick={() => setLeftPanel('files')}>
+      <button className={leftPanel === 'files' ? 'active' : ''} title={t('Files')} onClick={() => setLeftPanel('files')}>
         <Icon name="file-text" size={18} />
       </button>
-      <button className={leftPanel === 'search' ? 'active' : ''} title="Search (⌘⇧F)" onClick={() => setLeftPanel('search')}>
+      <button className={leftPanel === 'search' ? 'active' : ''} title={t('Search (⌘⇧F)')} onClick={() => setLeftPanel('search')}>
         <Icon name="search" size={18} />
       </button>
-      <button title="Graph view" onClick={() => setGraph(true)}>
+      <button title={t('Graph view')} onClick={() => setGraph(true)}>
         <Icon name="graph" size={18} />
       </button>
-      <button className={leftPanel === 'bookmarks' ? 'active' : ''} title="Bookmarks & recent" onClick={() => setLeftPanel('bookmarks')}>
+      <button className={leftPanel === 'bookmarks' ? 'active' : ''} title={t('Bookmarks & recent')} onClick={() => setLeftPanel('bookmarks')}>
         <Icon name="bookmark" size={18} />
       </button>
-      <button title="Daily note" onClick={() => openDailyNote()}>
+      <button title={t('Daily note')} onClick={() => openDailyNote()}>
         <Icon name="calendar" size={18} />
       </button>
-      <button className={leftPanel === 'tags' ? 'active' : ''} title="Tags" onClick={() => setLeftPanel('tags')}>
+      <button className={leftPanel === 'tags' ? 'active' : ''} title={t('Tags')} onClick={() => setLeftPanel('tags')}>
         <Icon name="hash" size={18} />
       </button>
-      <button title="Command palette (⌘P)" onClick={() => setPalette(true, 'commands')}>
+      <button title={t('Command palette (⌘P)')} onClick={() => setPalette(true, 'commands')}>
         <Icon name="command" size={18} />
       </button>
       <div className="spacer" />
       {gitEnabled && (
-        <button title={syncing ? 'Syncing…' : 'Sync now'} onClick={sync} disabled={syncing}>
+        <button title={t('提交更改')} onClick={() => setCommitDialog(true)}>
+          <Icon name="git-commit" size={18} />
+        </button>
+      )}
+      {gitEnabled && (
+        <button title={syncing ? t('Syncing…') : t('Sync now')} onClick={sync} disabled={syncing}>
           <Icon name="refresh-cw" size={18} style={syncing ? { animation: 'spin 1s linear infinite' } : undefined} />
         </button>
       )}
-      <button title="Toggle theme" onClick={onTheme}>
+      <button title={t('Toggle theme')} onClick={onTheme}>
         <Icon name="moon" size={18} />
       </button>
-      <button title="Settings" onClick={() => setSettings(true)}>
+      <button title={t('Settings')} onClick={() => setSettings(true)}>
         <Icon name="settings" size={18} />
       </button>
     </div>

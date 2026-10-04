@@ -200,9 +200,26 @@ export const api = {
   gitPull: () => req<{ message: string }>('/api/git/pull', { method: 'POST' }),
   gitCommit: (message?: string) =>
     req<{ message: string }>('/api/git/commit', { method: 'POST', body: JSON.stringify({ message }) }),
+  gitCommitTemplate: (prefix: string, description: string) =>
+    req<{ message: string }>('/api/git/commit', {
+      method: 'POST',
+      body: JSON.stringify({ prefix, description }),
+    }),
   gitPush: () => req<{ message: string }>('/api/git/push', { method: 'POST' }),
   gitSync: (message?: string) =>
     req<{ ok: boolean; log: string[] }>('/api/git/sync', { method: 'POST', body: JSON.stringify({ message }) }),
+  gitSyncTemplate: (prefix: string, description: string) =>
+    req<{ ok: boolean; log: string[] }>('/api/git/sync', {
+      method: 'POST',
+      body: JSON.stringify({ prefix, description }),
+    }),
+  commitPrefixes: () => req<{ prefixes: string[] }>('/api/git/commit-prefixes'),
+  githubAppStatus: () => req<{ configured: boolean }>('/api/git/github-app'),
+  openPullRequest: (title?: string, body?: string) =>
+    req<{ number: number; html_url: string; created: boolean }>('/api/git/pull-request', {
+      method: 'POST',
+      body: JSON.stringify({ title, body }),
+    }),
   gitLog: (path: string) =>
     req<{ commits: GitCommit[] }>(`/api/git/log?path=${encodeURIComponent(path)}`),
   gitShow: (hash: string, path: string) =>

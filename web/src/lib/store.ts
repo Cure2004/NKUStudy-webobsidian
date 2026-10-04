@@ -159,6 +159,9 @@ interface AppState {
   setPalette: (v: boolean, mode?: 'all' | 'commands' | 'files') => void;
   settingsOpen: boolean;
   setSettings: (v: boolean) => void;
+  /** 打开（true）/关闭（false）提交模板对话框。 */
+  commitDialogOpen: boolean;
+  setCommitDialog: (v: boolean) => void;
   /** Open (true) or close (false) the Trash modal. */
   trashOpen: boolean;
   setTrash: (v: boolean) => void;
@@ -407,6 +410,8 @@ export const useStore = create<AppState>()(
       setPalette: (v, mode = 'all') => set({ paletteOpen: v, paletteMode: mode }),
       settingsOpen: false,
       setSettings: (v) => set({ settingsOpen: v }),
+      commitDialogOpen: false,
+      setCommitDialog: (v) => set({ commitDialogOpen: v }),
       trashOpen: false,
       setTrash: (v) => set({ trashOpen: v }),
       setGraph: (v) => {
