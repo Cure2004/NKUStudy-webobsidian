@@ -24,6 +24,10 @@ export default function App() {
   const setAuthed = useStore((s) => s.setAuthed);
   const mustChangePassword = useStore((s) => s.mustChangePassword);
   const setMustChangePassword = useStore((s) => s.setMustChangePassword);
+  const role = useStore((s) => s.role);
+  const setRole = useStore((s) => s.setRole);
+  const setPublicEditor = useStore((s) => s.setPublicEditor);
+  const publicEditor = useStore((s) => s.publicEditor);
   const loadTree = useStore((s) => s.loadTree);
   const leftOpen = useStore((s) => s.leftOpen);
   const rightOpen = useStore((s) => s.rightOpen);
@@ -36,41 +40,57 @@ export default function App() {
   const toast = useStore((s) => s.toast);
   const [checking, setChecking] = useState(true);
   const [theme, setTheme] = useState<'theme-dark' | 'theme-light'>('theme-light');
+  // 公开模式下访客可点「管理员登录」打开登录浮层（登录后刷新为 owner）。
+  const loginOpen = useStore((s) => s.loginOpen);
+  const setLoginOpen = useStore((s) => s.setLoginOpen);
 
-  useEffect(() => {
+  const refreshSession = () =>
     api
       .me()
       .then((r) => {
+        setRole(r.role ?? 'owner');
+        setPublicEditor(Boolean(r.publicEditor));
         setMustChangePassword(Boolean(r.mustChangePassword));
         setAuthed(true);
       })
       .catch((e) => {
         if (!(e instanceof ApiError && e.status === 401)) console.error(e);
-      })
-      .finally(() => setChecking(false));
-  }, [setAuthed, setMustChangePassword]);
+      });
+
+  useEffect(() => {
+    refreshSession().finally(() => setChecking(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setAuthed, setMustChangePassword, setRole, setPublicEditor]);
 
   useEffect(() => {
     if (!authed) return;
+    const guest = useStore.getState().role === 'guest';
     loadTree();
     // Deep link (/note/<path>) wins over the restored workspace's active note.
     const deepLink = initUrlSync();
-    useStore
-      .getState()
-      .loadUiState() // restore workspace from server + open note(s)
-      .then(() => {
-        if (deepLink && deepLink !== useStore.getState().activePath) {
-          return useStore.getState().openFile(deepLink);
-        }
-      })
-      .catch(() => {});
-    api
-      .getSettings()
-      .then((s) => setTheme(s?.ui?.theme === 'obsidian-dark' ? 'theme-dark' : 'theme-light'))
-      .catch(() => {});
-    useStore.getState().loadShares(); // badge shared notes in the file tree
-    loadPlugins().catch(() => {});
-    // websocket live updates
+    if (!guest) {
+      // 以下均为 owner 专属：工作区状态、设置、分享、插件。访客跳过以免 401。
+      useStore
+        .getState()
+        .loadUiState() // restore workspace from server + open note(s)
+        .then(() => {
+          if (deepLink && deepLink !== useStore.getState().activePath) {
+            return useStore.getState().openFile(deepLink);
+          }
+        })
+        .catch(() => {});
+      api
+        .getSettings()
+        .then((s) => setTheme(s?.ui?.theme === 'obsidian-dark' ? 'theme-dark' : 'theme-light'))
+        .catch(() => {});
+      useStore.getState().loadShares(); // badge shared notes in the file tree
+      loadPlugins().catch(() => {});
+    } else if (deepLink) {
+      // 访客：不恢复服务端工作区，仅处理深链。
+      useStore.getState().openFile(deepLink).catch(() => {});
+    }
+    // websocket live updates（仅 owner 有令牌；访客连接会被服务端拒绝，跳过）。
+    if (guest) return;
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const ws = new WebSocket(`${proto}://${location.host}/ws`);
     let treeTimer: number | undefined;
@@ -156,7 +176,9 @@ export default function App() {
   if (checking) return <div className={theme} style={{ height: '100%' }} />;
   if (!authed) return <div className={theme}><Login onAuthed={() => setAuthed(true)} /></div>;
   // Signed in but still on the default password → block the app until it's changed.
-  if (mustChangePassword) return <div className={theme}><ForceChangePassword /></div>;
+  // 访客（公开模式）不走此流程。
+  if (mustChangePassword && role === 'owner')
+    return <div className={theme}><ForceChangePassword /></div>;
 
   // On mobile the sidebars are overlay drawers (always mounted, slid in/out by
   // CSS), driven by the device-local `mobileDrawer` state — not the persisted
@@ -191,6 +213,20 @@ export default function App() {
       <ContextMenu />
       <FolderPicker />
       <CommitDialog />
+      {loginOpen && (
+        <div className="modal-bg" onClick={() => setLoginOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Login
+              overlay
+              onAuthed={() => {
+                // 登录成功：整页刷新，让 /auth/me 重新解析出 owner 角色。
+                setLoginOpen(false);
+                location.reload();
+              }}
+            />
+          </div>
+        </div>
+      )}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

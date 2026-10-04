@@ -153,6 +153,8 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
   const bookmarks = useStore((s) => s.bookmarks);
   const notify = useStore((s) => s.notify);
   const setShareDialog = useStore((s) => s.setShareDialog);
+  const role = useStore((s) => s.role);
+  const isGuest = role === 'guest';
   const shares = useStore((s) => s.shares);
   const isSelected = useStore((s) => s.selected.includes(node.path));
   const setSelected = useStore((s) => s.setSelected);
@@ -318,7 +320,7 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
           { label: t('Open to the right'), onClick: () => openToSide(node.path) },
           { label: '', separator: true },
           { label: bookmarks.includes(node.path) ? t('Remove bookmark') : t('Bookmark'), onClick: () => toggleBookmark(node.path) },
-          ...(/\.(md|markdown|canvas)$/i.test(node.path)
+          ...(!isGuest && /\.(md|markdown|canvas)$/i.test(node.path)
             ? [{ label: t('Share…'), icon: 'globe', onClick: () => setShareDialog(node.path) }]
             : []),
           { label: t('Make a copy'), onClick: doCopy },

@@ -10,15 +10,19 @@ export default function StatusBar() {
   const dirty = useStore((s) => s.dirty);
   const loadTree = useStore((s) => s.loadTree);
   const notify = useStore((s) => s.notify);
+  const role = useStore((s) => s.role);
+  const isGuest = role === 'guest';
   const [git, setGit] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
 
+  // 访客无权访问 git 状态（owner 专属接口），直接跳过轮询。
   const refresh = () => api.gitStatus().then(setGit).catch(() => setGit(null));
   useEffect(() => {
+    if (isGuest) return;
     refresh();
     const id = setInterval(refresh, 15000);
     return () => clearInterval(id);
-  }, []);
+  }, [isGuest]);
 
   const sync = async () => {
     if (syncing) return;
@@ -50,10 +54,13 @@ export default function StatusBar() {
       {dirty && <span>{t('Saving…')}</span>}
       {isText && <span>{t('{n} words', { n: words })}</span>}
       {isText && <span>{t('{n} characters', { n: content.length })}</span>}
-      <span className="clickable" title={t('Git sync')} onClick={sync}>
-        <Icon name="refresh-cw" size={13} style={syncing ? { animation: 'spin 1s linear infinite' } : undefined} />
-        {gitLabel}
-      </span>
+      {/* 访客只能通过「提交更改」对话框投稿（带提交模板），不显示一键同步入口。 */}
+      {!isGuest && (
+        <span className="clickable" title={t('Git sync')} onClick={sync}>
+          <Icon name="refresh-cw" size={13} style={syncing ? { animation: 'spin 1s linear infinite' } : undefined} />
+          {gitLabel}
+        </span>
+      )}
     </div>
   );
 }

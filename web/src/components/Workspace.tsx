@@ -84,6 +84,8 @@ export default function Workspace() {
   const setMovePath = useStore((s) => s.setMovePath);
   const setRightPanel = useStore((s) => s.setRightPanel);
   const setShareDialog = useStore((s) => s.setShareDialog);
+  const role = useStore((s) => s.role);
+  const isGuest = role === 'guest';
   const setVersionHistory = useStore((s) => s.setVersionHistory);
   const revealInTree = useStore((s) => s.revealInTree);
   const loadTree = useStore((s) => s.loadTree);
@@ -238,7 +240,7 @@ export default function Workspace() {
             if (isMobile) setMobileDrawer('left');
           },
         },
-        ...(isShareable ? [{ label: t('Share…'), icon: 'globe', onClick: () => setShareDialog(path) }] : []),
+        ...(!isGuest && isShareable ? [{ label: t('Share…'), icon: 'globe', onClick: () => setShareDialog(path) }] : []),
         sep,
         ...tabItems,
         sep,

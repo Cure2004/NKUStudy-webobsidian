@@ -93,7 +93,8 @@ export class ApiError extends Error {
 
 export const api = {
   // auth
-  authStatus: () => req<{ passwordSet: boolean; mustChangePassword: boolean }>('/auth/status'),
+  authStatus: () =>
+    req<{ passwordSet: boolean; mustChangePassword: boolean; publicEditor: boolean }>('/auth/status'),
   setup: (password: string) =>
     req<{ ok: true }>('/auth/setup', { method: 'POST', body: JSON.stringify({ password }) }),
   login: (password: string) =>
@@ -107,7 +108,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
-  me: () => req<{ authenticated: boolean; mustChangePassword: boolean }>('/auth/me'),
+  me: () =>
+    req<{ authenticated: boolean; role: 'owner' | 'guest'; publicEditor: boolean; mustChangePassword: boolean }>(
+      '/auth/me',
+    ),
 
   // files
   tree: () => req<TreeNode>('/api/files/'),

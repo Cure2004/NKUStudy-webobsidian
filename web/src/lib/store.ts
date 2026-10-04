@@ -85,6 +85,18 @@ interface AppState {
   setAuthed: (v: boolean) => void;
   mustChangePassword: boolean;
   setMustChangePassword: (v: boolean) => void;
+  /** 会话角色：owner（管理员）或 guest（公开编辑访客）。 */
+  role: 'owner' | 'guest';
+  setRole: (r: 'owner' | 'guest') => void;
+  /** 是否开启公开编辑模式（服务端 /auth/status 返回）。 */
+  publicEditor: boolean;
+  setPublicEditor: (v: boolean) => void;
+  /** 访客只能改动 editableRoot 下的路径；返回该目录（相对内容根），空串=全部。 */
+  editableRoot: string;
+  setEditableRoot: (v: string) => void;
+  /** 公开模式下打开「管理员登录」浮层。 */
+  loginOpen: boolean;
+  setLoginOpen: (v: boolean) => void;
 
   tree: TreeNode | null;
   loadTree: () => Promise<void>;
@@ -306,6 +318,14 @@ export const useStore = create<AppState>()(
       setAuthed: (v) => set({ authed: v }),
       mustChangePassword: false,
       setMustChangePassword: (v) => set({ mustChangePassword: v }),
+      role: 'owner',
+      setRole: (r) => set({ role: r }),
+      publicEditor: false,
+      setPublicEditor: (v) => set({ publicEditor: v }),
+      editableRoot: '',
+      setEditableRoot: (v) => set({ editableRoot: v }),
+      loginOpen: false,
+      setLoginOpen: (v) => set({ loginOpen: v }),
 
       tree: null,
       loadTree: async () => {

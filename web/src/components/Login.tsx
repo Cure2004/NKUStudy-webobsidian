@@ -4,7 +4,7 @@ import { useStore } from '../lib/store';
 import { t } from '../lib/i18n';
 import Icon from './Icon';
 
-export default function Login({ onAuthed }: { onAuthed: () => void }) {
+export default function Login({ onAuthed, overlay = false }: { onAuthed: () => void; overlay?: boolean }) {
   const setMustChangePassword = useStore((s) => s.setMustChangePassword);
   const [needSetup, setNeedSetup] = useState(false);
   const [password, setPassword] = useState('');
@@ -40,8 +40,9 @@ export default function Login({ onAuthed }: { onAuthed: () => void }) {
     }
   };
 
+  // overlay=true 时作为公开模式下的「管理员登录」浮层，去掉全屏背景。
   return (
-    <div className="login-screen">
+    <div className={overlay ? 'login-overlay' : 'login-screen'}>
       <form className="login-card" onSubmit={submit}>
         <div className="logo">
           <Icon name="gem" size={40} />

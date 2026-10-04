@@ -33,6 +33,8 @@ export default function CommandPalette() {
   const openToSide = useStore((s) => s.openToSide);
   const setSettings = useStore((s) => s.setSettings);
   const setTrash = useStore((s) => s.setTrash);
+  const role = useStore((s) => s.role);
+  const isGuest = role === 'guest';
   const setGraph = useStore((s) => s.setGraph);
   const setLeftPanel = useStore((s) => s.setLeftPanel);
   const setViewMode = useStore((s) => s.setViewMode);
@@ -58,22 +60,27 @@ export default function CommandPalette() {
       { id: 'search', title: t('Open search'), run: () => setLeftPanel('search') },
       { id: 'bookmarks', title: t('Open bookmarks & recent'), run: () => setLeftPanel('bookmarks') },
       { id: 'graph', title: t('Open graph view'), run: () => setGraph(true) },
-      { id: 'settings', title: t('Open settings'), run: () => setSettings(true) },
-      { id: 'trash', title: t('Open trash'), run: () => setTrash(true) },
+      // 访客（公开模式）不显示设置/回收站/重建索引等管理类命令。
+      ...(isGuest
+        ? []
+        : [
+            { id: 'settings', title: t('Open settings'), run: () => setSettings(true) },
+            { id: 'trash', title: t('Open trash'), run: () => setTrash(true) },
+            { id: 'reindex', title: t('Rebuild search index'), run: async () => {
+                notify(t('Rebuilding search index…'), 0);
+                try {
+                  await api.reindex();
+                  notify(t('Search index rebuilt'));
+                } catch {
+                  notify(t('Failed to rebuild search index'));
+                }
+              } },
+          ]),
       { id: 'reading', title: t('View: Reading mode'), run: () => setViewMode('reading') },
       { id: 'live', title: t('View: Live edit'), run: () => setViewMode('live') },
       { id: 'source', title: t('View: Source'), run: () => setViewMode('source') },
-      { id: 'reindex', title: t('Rebuild search index'), run: async () => {
-          notify(t('Rebuilding search index…'), 0);
-          try {
-            await api.reindex();
-            notify(t('Search index rebuilt'));
-          } catch {
-            notify(t('Failed to rebuild search index'));
-          }
-        } },
     ],
-    [save, setLeftPanel, setGraph, setSettings, setTrash, setViewMode, activePath, toggleBookmark, openToSide, openDailyNote, newNote, newCanvas, notify],
+    [save, setLeftPanel, setGraph, setSettings, setTrash, setViewMode, activePath, toggleBookmark, openToSide, openDailyNote, newNote, newCanvas, notify, isGuest],
   );
 
   const items = useMemo(() => {

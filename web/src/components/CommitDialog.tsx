@@ -15,6 +15,8 @@ export default function CommitDialog() {
   const notify = useStore((s) => s.notify);
   const loadTree = useStore((s) => s.loadTree);
   const save = useStore((s) => s.save);
+  const role = useStore((s) => s.role);
+  const isGuest = role === 'guest';
 
   const [prefixes, setPrefixes] = useState<string[]>(['新增', '修订', '优化', '修复', '更新']);
   const [prefix, setPrefix] = useState('新增');
@@ -142,9 +144,12 @@ export default function CommitDialog() {
           <button className="btn secondary" onClick={() => setOpen(false)} disabled={busy}>
             {t('Close')}
           </button>
-          <button className="btn secondary" onClick={() => run(false)} disabled={busy || !valid}>
-            {busy ? t('处理中…') : t('仅提交')}
-          </button>
+          {/* 访客只能走投稿流程（提交并推送 + 开 PR）；「仅提交」是 owner 功能。 */}
+          {!isGuest && (
+            <button className="btn secondary" onClick={() => run(false)} disabled={busy || !valid}>
+              {busy ? t('处理中…') : t('仅提交')}
+            </button>
+          )}
           <button className="btn" onClick={() => run(true)} disabled={busy || !valid}>
             {busy ? t('处理中…') : t('提交并推送（创建 PR）')}
           </button>

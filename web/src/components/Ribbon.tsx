@@ -9,6 +9,9 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
   const leftPanel = useStore((s) => s.leftPanel);
   const setGraph = useStore((s) => s.setGraph);
   const setSettings = useStore((s) => s.setSettings);
+  const setLoginOpen = useStore((s) => s.setLoginOpen);
+  const role = useStore((s) => s.role);
+  const isGuest = role === 'guest';
   const setPalette = useStore((s) => s.setPalette);
   const openDailyNote = useStore((s) => s.openDailyNote);
   const notify = useStore((s) => s.notify);
@@ -64,12 +67,18 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
         <Icon name="command" size={18} />
       </button>
       <div className="spacer" />
-      {gitEnabled && (
+      {/* 访客：只保留「提交」入口（走投稿 PR 流程），不显示同步/设置。 */}
+      {isGuest && (
         <button title={t('提交更改')} onClick={() => setCommitDialog(true)}>
           <Icon name="git-commit" size={18} />
         </button>
       )}
-      {gitEnabled && (
+      {!isGuest && gitEnabled && (
+        <button title={t('提交更改')} onClick={() => setCommitDialog(true)}>
+          <Icon name="git-commit" size={18} />
+        </button>
+      )}
+      {!isGuest && gitEnabled && (
         <button title={syncing ? t('Syncing…') : t('Sync now')} onClick={sync} disabled={syncing}>
           <Icon name="refresh-cw" size={18} style={syncing ? { animation: 'spin 1s linear infinite' } : undefined} />
         </button>
@@ -77,9 +86,15 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
       <button title={t('Toggle theme')} onClick={onTheme}>
         <Icon name="moon" size={18} />
       </button>
-      <button title={t('Settings')} onClick={() => setSettings(true)}>
-        <Icon name="settings" size={18} />
-      </button>
+      {isGuest ? (
+        <button title={t('管理员登录')} onClick={() => setLoginOpen(true)}>
+          <Icon name="log-in" size={18} />
+        </button>
+      ) : (
+        <button title={t('Settings')} onClick={() => setSettings(true)}>
+          <Icon name="settings" size={18} />
+        </button>
+      )}
     </div>
   );
 }

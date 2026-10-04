@@ -21,6 +21,9 @@ export default function Sidebar() {
   const newFolder = useStore((s) => s.newFolder);
   const setSettings = useStore((s) => s.setSettings);
   const setTrash = useStore((s) => s.setTrash);
+  const setLoginOpen = useStore((s) => s.setLoginOpen);
+  const role = useStore((s) => s.role);
+  const isGuest = role === 'guest';
   const tree = useStore((s) => s.tree);
   const expanded = useStore((s) => s.expanded);
   const setExpanded = useStore((s) => s.setExpanded);
@@ -118,9 +121,11 @@ export default function Sidebar() {
             >
               <Icon name={allCollapsed ? 'chevrons-up-down' : 'chevrons-down-up'} size={16} />
             </button>
-            <button className="nav-action" title={t('Trash')} onClick={() => setTrash(true)}>
-              <Icon name="trash" size={16} />
-            </button>
+            {!isGuest && (
+              <button className="nav-action" title={t('Trash')} onClick={() => setTrash(true)}>
+                <Icon name="trash" size={16} />
+              </button>
+            )}
           </>
         )}
       </div>
@@ -135,9 +140,15 @@ export default function Sidebar() {
           <Icon name="gem" size={15} /> {vaultName}
         </span>
         <span className="grow" />
-        <button title={t('Settings')} onClick={() => setSettings(true)}>
-          <Icon name="settings" size={16} />
-        </button>
+        {isGuest ? (
+          <button title={t('管理员登录')} onClick={() => setLoginOpen(true)}>
+            <Icon name="log-in" size={16} />
+          </button>
+        ) : (
+          <button title={t('Settings')} onClick={() => setSettings(true)}>
+            <Icon name="settings" size={16} />
+          </button>
+        )}
       </div>
       <div className="sidebar-resizer" title={t('Drag to resize')} onPointerDown={onResizeDown} />
     </div>
