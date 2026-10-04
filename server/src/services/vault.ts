@@ -13,6 +13,8 @@ export interface TreeNode {
   children?: TreeNode[];
   /** 显示名：文件夹用中文映射，md 用文档标题；缺省时前端回退到 name。 */
   label?: string;
+  /** 文件夹自定义排序序号（来自 vault.folderOrder）；越小越靠前，缺省排在最后。 */
+  order?: number;
 }
 
 /**
@@ -151,6 +153,7 @@ export async function listTree(): Promise<TreeNode> {
   await fs.mkdir(root, { recursive: true });
   const s = await getSettings();
   const folderLabels = s.vault.folderLabels ?? {};
+  const folderOrder = s.vault.folderOrder ?? [];
   const useDocTitles = s.vault.useDocTitles !== false;
 
   async function walk(absDir: string): Promise<TreeNode[]> {
@@ -165,7 +168,15 @@ export async function listTree(): Promise<TreeNode> {
           const rel = toRel(root, abs);
           if (e.isDirectory()) {
             const label = folderLabels[rel];
-            return { name: e.name, path: rel, type: 'folder', label, children: await walk(abs) };
+            const orderIdx = folderOrder.indexOf(rel);
+            return {
+              name: e.name,
+              path: rel,
+              type: 'folder',
+              label,
+              order: orderIdx >= 0 ? orderIdx : undefined,
+              children: await walk(abs),
+            };
           }
           if (e.isFile()) {
             const { m, c } = await fileStat(abs, rel);

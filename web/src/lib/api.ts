@@ -11,6 +11,8 @@ export interface TreeNode {
   children?: TreeNode[];
   /** 显示名：文件夹中文映射 / md 文档标题；缺省时回退到 name。 */
   label?: string;
+  /** 文件夹自定义排序序号（越小越靠前，缺省排最后）。 */
+  order?: number;
 }
 
 export interface TrashItem {

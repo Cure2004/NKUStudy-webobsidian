@@ -633,8 +633,8 @@ const zh: Record<string, string> = {
   '用文档标题显示 Markdown': '用文档标题显示 Markdown',
   '开启后，文件树/标签页用文档标题替代英文文件名显示': '开启后，文件树/标签页用文档标题替代英文文件名显示',
   '文件夹中文名映射': '文件夹中文名映射',
-  '每行一条「相对路径 = 中文名」，与 VitePress config.ts 的 directoryLabels 对应':
-    '每行一条「相对路径 = 中文名」，与 VitePress config.ts 的 directoryLabels 对应',
+  '每行一条「相对路径 = 中文名」，与 VitePress config.ts 的 directoryLabels 对应；行的先后顺序即文件夹显示顺序':
+    '每行一条「相对路径 = 中文名」，与 VitePress config.ts 的 directoryLabels 对应；行的先后顺序即文件夹显示顺序',
   '保存显示设置': '保存显示设置',
   '显示设置已保存，重新加载文件树后生效。': '显示设置已保存，重新加载文件树后生效。',
 };

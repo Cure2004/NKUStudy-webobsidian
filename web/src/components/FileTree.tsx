@@ -448,7 +448,13 @@ function sortTree(node: TreeNode, order: TreeSort): TreeNode {
   if (!node.children) return node;
   const cmp = (a: TreeNode, b: TreeNode): number => {
     if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
-    if (a.type === 'folder') return a.name.localeCompare(b.name);
+    if (a.type === 'folder') {
+      // 自定义顺序优先（vault.folderOrder 的序号），未列出的排在后面按名称。
+      const oa = a.order ?? Number.MAX_SAFE_INTEGER;
+      const ob = b.order ?? Number.MAX_SAFE_INTEGER;
+      if (oa !== ob) return oa - ob;
+      return a.name.localeCompare(b.name);
+    }
     switch (order) {
       case 'name-desc': return -a.name.localeCompare(b.name);
       case 'mtime-desc': return (b.mtime ?? 0) - (a.mtime ?? 0);

@@ -41,6 +41,9 @@ const SettingsSchema = z.object({
       root: z.string().default(''),
       // 文件夹中文名映射：相对内容根目录的路径 → 显示名（对齐 VitePress config.ts）。
       folderLabels: z.record(z.string(), z.string()).default({}),
+      // 文件夹自定义顺序：相对内容根目录的路径数组，按此顺序显示；
+      // 未列出的文件夹排在后面，按名称排序。
+      folderOrder: z.array(z.string()).default([]),
       // 是否用 Markdown 文档标题替换英文文件名显示。
       useDocTitles: z.boolean().default(true),
     })

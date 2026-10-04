@@ -91,15 +91,20 @@ function VaultSettings({ s, reload }: { s: any; reload: () => void }) {
   };
   const saveDisplay = async () => {
     // 每行 `相对路径 = 中文名`，空行/无等号的行忽略。
+    // 行的先后顺序同时作为文件夹的显示顺序（folderOrder）。
     const folderLabels: Record<string, string> = {};
+    const folderOrder: string[] = [];
     for (const line of labelsText.split('\n')) {
       const i = line.indexOf('=');
       if (i < 0) continue;
       const k = line.slice(0, i).trim();
       const v = line.slice(i + 1).trim();
-      if (k && v) folderLabels[k] = v;
+      if (k && v) {
+        folderLabels[k] = v;
+        folderOrder.push(k);
+      }
     }
-    await api.putSettings({ vault: { root: contentRoot.trim(), useDocTitles, folderLabels } });
+    await api.putSettings({ vault: { root: contentRoot.trim(), useDocTitles, folderLabels, folderOrder } });
     await reload();
     alert(t('显示设置已保存，重新加载文件树后生效。'));
   };
@@ -147,7 +152,7 @@ function VaultSettings({ s, reload }: { s: any; reload: () => void }) {
       </Row>
       <Row
         name={t('文件夹中文名映射')}
-        desc={t('每行一条「相对路径 = 中文名」，与 VitePress config.ts 的 directoryLabels 对应')}
+        desc={t('每行一条「相对路径 = 中文名」，与 VitePress config.ts 的 directoryLabels 对应；行的先后顺序即文件夹显示顺序')}
       >
         <textarea
           className="text-input"

@@ -77,6 +77,11 @@ function sanitizeVault(v: any) {
     out.root = v.root.trim().replace(/^[/\\]+|[/\\]+$/g, '');
   }
   if (typeof v.useDocTitles === 'boolean') out.useDocTitles = v.useDocTitles;
+  if (Array.isArray(v.folderOrder)) {
+    out.folderOrder = v.folderOrder
+      .filter((x: unknown): x is string => typeof x === 'string' && x.trim() !== '')
+      .map((x: string) => x.trim().replace(/^[/\\]+|[/\\]+$/g, ''));
+  }
   if (v.folderLabels && typeof v.folderLabels === 'object' && !Array.isArray(v.folderLabels)) {
     const labels: Record<string, string> = {};
     for (const [k, val] of Object.entries(v.folderLabels)) {
