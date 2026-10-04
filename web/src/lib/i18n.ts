@@ -591,6 +591,10 @@ const zh: Record<string, string> = {
   '改名': '改名',
   '复制': '复制',
   '冲突': '冲突',
+  'Discard changes': '舍弃更改',
+  'Discard changes to {name}? This cannot be undone.': '舍弃「{name}」的更改？此操作无法撤销。',
+  'Discarded changes to {n} file(s)': '已舍弃 {n} 个文件的更改',
+  'Discard failed': '舍弃失败',
   '提交信息格式为「中文前缀: 详细说明」，与 Wiki 仓库的 CI 校验一致。':
     '提交信息格式为「中文前缀: 详细说明」，与 Wiki 仓库的 CI 校验一致。',
   '前缀': '前缀',

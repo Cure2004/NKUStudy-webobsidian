@@ -335,6 +335,12 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
           { label: t('Move folder to…'), onClick: doMove },
           { label: t('Copy path'), onClick: copyPath },
           { label: t('Copy URL path'), onClick: copyUrl },
+          ...(!isGuest
+            ? [
+                { label: '', separator: true },
+                { label: t('Discard changes'), icon: 'undo', onClick: () => discardPaths([node.path], node.name) },
+              ]
+            : []),
           { label: '', separator: true },
           { label: t('Delete'), danger: true, onClick: doDelete },
         ]
@@ -355,6 +361,12 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
           { label: t('Rename…'), onClick: doRename },
           { label: t('Move file to…'), onClick: doMove },
           { label: t('Copy URL path'), onClick: copyUrl },
+          ...(!isGuest
+            ? [
+                { label: '', separator: true },
+                { label: t('Discard changes'), icon: 'undo', onClick: () => discardPaths([node.path], node.name) },
+              ]
+            : []),
           { label: '', separator: true },
           { label: t('Delete'), danger: true, onClick: doDelete },
         ];
