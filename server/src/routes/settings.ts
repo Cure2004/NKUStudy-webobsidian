@@ -6,6 +6,9 @@ import { asyncHandler } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getSettings, updateSettings, redactSettings, ensureVaultBrowsable } from '../services/settings.js';
 import { clearInstallationTokenCache } from '../services/githubApp.js';
+import { initSearch } from '../services/search.js';
+import { buildLinkGraph } from '../services/links.js';
+import { buildFileIndex } from '../services/fileindex.js';
 import { config } from '../config.js';
 
 export const settingsRouter = Router();
@@ -55,6 +58,10 @@ settingsRouter.put(
     });
     // GitHub App 配置变化后清空 installation token 缓存，使新配置立即生效。
     if (body.github) clearInstallationTokenCache();
+    // 内容根目录变化后重建搜索/链接/文件索引（相对路径全部改变）。
+    if (body.vault && typeof body.vault.root === 'string') {
+      void initSearch().then(() => buildLinkGraph()).then(() => buildFileIndex()).catch(() => {});
+    }
     res.json(redactSettings(updated));
   }),
 );
@@ -65,6 +72,20 @@ function sanitizeVault(v: any) {
   if (typeof v.trash === 'string') out.trash = v.trash;
   if (v.deleteMode === 'trash' || v.deleteMode === 'permanent') out.deleteMode = v.deleteMode;
   if (typeof v.attachmentDir === 'string') out.attachmentDir = v.attachmentDir;
+  // 内容根目录：相对仓库根的子目录，去掉首尾斜杠，禁止 .. 越界。
+  if (typeof v.root === 'string') {
+    out.root = v.root.trim().replace(/^[/\\]+|[/\\]+$/g, '');
+  }
+  if (typeof v.useDocTitles === 'boolean') out.useDocTitles = v.useDocTitles;
+  if (v.folderLabels && typeof v.folderLabels === 'object' && !Array.isArray(v.folderLabels)) {
+    const labels: Record<string, string> = {};
+    for (const [k, val] of Object.entries(v.folderLabels)) {
+      if (typeof k === 'string' && typeof val === 'string' && k.trim() && val.trim()) {
+        labels[k.trim().replace(/^[/\\]+|[/\\]+$/g, '')] = val.trim();
+      }
+    }
+    out.folderLabels = labels;
+  }
   if (Array.isArray(v.allowedRoots)) {
     // allowedRoots is the gate for vault.path / Browse, so keep it well-formed:
     // only non-empty strings, normalised to absolute paths. Drops anything else

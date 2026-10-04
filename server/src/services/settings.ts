@@ -36,6 +36,13 @@ const SettingsSchema = z.object({
       // 'permanent' = xoá vĩnh viễn ngay.
       deleteMode: z.enum(['trash', 'permanent']).default('trash'),
       attachmentDir: z.string().default('attachments'),
+      // 编辑器的「内容根目录」：相对仓库根的子目录（如 docs/start）。
+      // 文件树只显示该目录下的内容；git 操作仍以仓库根为基准。
+      root: z.string().default(''),
+      // 文件夹中文名映射：相对内容根目录的路径 → 显示名（对齐 VitePress config.ts）。
+      folderLabels: z.record(z.string(), z.string()).default({}),
+      // 是否用 Markdown 文档标题替换英文文件名显示。
+      useDocTitles: z.boolean().default(true),
     })
     .default({}),
   git: z

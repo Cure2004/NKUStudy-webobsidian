@@ -15,7 +15,7 @@ function flatten(node: TreeNode | null): { path: string; title: string }[] {
   const out: { path: string; title: string }[] = [];
   const walk = (n: TreeNode) => {
     if (n.type === 'file' && /\.(md|markdown)$/i.test(n.ext ?? '')) {
-      out.push({ path: n.path, title: n.name.replace(/\.(md|markdown)$/, '') });
+      out.push({ path: n.path, title: n.label ?? n.name.replace(/\.(md|markdown)$/, '') });
     }
     n.children?.forEach(walk);
   };

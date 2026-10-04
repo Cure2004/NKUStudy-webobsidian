@@ -11,6 +11,8 @@ export interface TreeNode {
   mtime?: number; // last-modified (ms) — for sort-by-modified-time
   ctime?: number; // created/birth (ms) — for sort-by-created-time
   children?: TreeNode[];
+  /** 显示名：文件夹用中文映射，md 用文档标题；缺省时前端回退到 name。 */
+  label?: string;
 }
 
 /**
@@ -44,14 +46,27 @@ const TEXT_EXTS = new Set([
 
 const IGNORED = new Set(['.git', 'node_modules']);
 
+/** 仓库根（git 操作基准，也用于解析内容根）。 */
 export async function getVaultRoot(): Promise<string> {
   const s = await getSettings();
   return path.resolve(s.vault.path);
 }
 
+/**
+ * 内容根目录：仓库根 + vault.root 子目录（如 docs/start）。
+ * 文件树的浏览/读写都以它为基准；git 操作仍用 getVaultRoot()。
+ * 未配置 vault.root 时等于仓库根（保持上游行为）。
+ */
+export async function getContentRoot(): Promise<string> {
+  const s = await getSettings();
+  const repo = path.resolve(s.vault.path);
+  const sub = (s.vault.root ?? '').trim().replace(/^[/\\]+|[/\\]+$/g, '');
+  return sub ? path.resolve(repo, sub) : repo;
+}
+
 /** Resolve a vault-relative path to an absolute one, refusing traversal. */
 export async function resolveInVault(relPath: string): Promise<string> {
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   const clean = relPath.replace(/^[/\\]+/, '');
   const abs = path.resolve(root, clean);
   const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
@@ -59,13 +74,15 @@ export async function resolveInVault(relPath: string): Promise<string> {
     throw Object.assign(new Error('Path escapes vault'), { status: 400 });
   }
   // Never resolve into the vault's own git metadata: an authenticated write to
-  // e.g. .git/hooks/post-merge would execute on the next git sync.
-  if (path.relative(root, abs).split(path.sep).includes('.git')) {
+  // e.g. .git/hooks/post-merge would execute on the next git sync. Also block
+  // escaping the content root back up into the repo root.
+  const relToRepo = path.relative(await getVaultRoot(), abs).split(path.sep);
+  if (relToRepo.includes('.git')) {
     throw Object.assign(new Error('Path not allowed'), { status: 400 });
   }
   // Symlink guard: a symlink *inside* the vault could point outside it, which the
   // string-prefix check above can't catch. Resolve the real path of the deepest
-  // existing ancestor and confirm it still lives under the vault root.
+  // existing ancestor and confirm it still lives under the content root.
   await assertRealpathInVault(abs, root);
   return abs;
 }
@@ -95,14 +112,46 @@ export function toRel(root: string, abs: string): string {
 }
 
 export async function ensureVault(): Promise<void> {
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   await fs.mkdir(root, { recursive: true });
 }
 
-/** Build the full tree (folders + files), skipping ignored dirs. */
+/** 读取 Markdown 的显示标题：优先 frontmatter title，其次首个 `# 标题`。 */
+function extractDocTitle(raw: string): string | null {
+  const fm = raw.match(/^---\s*\r?\n([\s\S]*?)\r?\n---/);
+  if (fm) {
+    const m = fm[1].match(/^title:\s*(.+)$/m);
+    if (m) return m[1].trim().replace(/^["'](.+)["']$/, '$1');
+  }
+  const lines = raw.split(/\r?\n/);
+  let fence: string | null = null;
+  for (const line of lines) {
+    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      const marker = fenceMatch[1][0];
+      if (fence === null) fence = marker;
+      else if (fence === marker) fence = null;
+      continue;
+    }
+    if (fence === null) {
+      const h = line.match(/^#(?!#)\s+(.+?)\s*$/);
+      if (h) return h[1].replace(/\s+#+\s*$/, '').trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * 构建文件树（仅内容根目录），跳过忽略目录。
+ * 为每个节点附加 `label`：文件夹取 vault.folderLabels 的中文映射，
+ * Markdown 文件取文档标题（可关闭）。`path` 始终是真实相对路径。
+ */
 export async function listTree(): Promise<TreeNode> {
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   await fs.mkdir(root, { recursive: true });
+  const s = await getSettings();
+  const folderLabels = s.vault.folderLabels ?? {};
+  const useDocTitles = s.vault.useDocTitles !== false;
 
   async function walk(absDir: string): Promise<TreeNode[]> {
     const entries = await fs.readdir(absDir, { withFileTypes: true });
@@ -115,11 +164,23 @@ export async function listTree(): Promise<TreeNode> {
           const abs = path.join(absDir, e.name);
           const rel = toRel(root, abs);
           if (e.isDirectory()) {
-            return { name: e.name, path: rel, type: 'folder', children: await walk(abs) };
+            const label = folderLabels[rel];
+            return { name: e.name, path: rel, type: 'folder', label, children: await walk(abs) };
           }
           if (e.isFile()) {
             const { m, c } = await fileStat(abs, rel);
-            return { name: e.name, path: rel, type: 'file', ext: path.extname(e.name).toLowerCase(), mtime: m, ctime: c };
+            const node: TreeNode = { name: e.name, path: rel, type: 'file', ext: path.extname(e.name).toLowerCase(), mtime: m, ctime: c };
+            // Markdown 用文档标题作为显示名（对齐 VitePress 侧边栏）。
+            if (useDocTitles && /\.(md|markdown)$/i.test(e.name)) {
+              try {
+                const raw = await fs.readFile(abs, 'utf8');
+                const title = extractDocTitle(raw);
+                if (title) node.label = title;
+              } catch {
+                /* 读取失败则回退到文件名 */
+              }
+            }
+            return node;
           }
           return null;
         }),
@@ -176,7 +237,7 @@ export async function createFolder(rel: string): Promise<void> {
  * filesystems. Segments with no existing match are kept verbatim.
  */
 export async function resolveDirCaseInsensitive(rel: string): Promise<string> {
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   const segs = rel.split('/').filter(Boolean);
   const out: string[] = [];
   let curAbs = root;
@@ -221,7 +282,7 @@ export async function copy(from: string, to: string): Promise<string[]> {
   const absTo = await resolveInVault(to);
   await fs.mkdir(path.dirname(absTo), { recursive: true });
   await fs.cp(absFrom, absTo, { recursive: true, errorOnExist: true, force: false });
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   const out: string[] = [];
   const st = await fs.stat(absTo);
   if (st.isDirectory()) {
@@ -250,7 +311,7 @@ export async function remove(rel: string): Promise<void> {
 /** Move a path into the vault trash folder, preserving relative layout. */
 export async function trash(rel: string): Promise<string> {
   const s = await getSettings();
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   const absFrom = await resolveInVault(rel);
   const trashRoot = path.join(root, s.vault.trash);
   const dest = path.join(trashRoot, rel);
@@ -287,7 +348,7 @@ export interface TrashItem {
 
 async function getTrashRoot(): Promise<string> {
   const s = await getSettings();
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   return path.join(root, s.vault.trash);
 }
 
@@ -318,7 +379,7 @@ async function pruneEmptyDirs(dir: string, stopAt: string): Promise<void> {
 
 /** List every file currently in the trash, newest deletion first. */
 export async function listTrash(): Promise<TrashItem[]> {
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   const trashRoot = await getTrashRoot();
   const out: TrashItem[] = [];
   async function walk(dir: string) {
@@ -394,7 +455,7 @@ export async function emptyTrash(): Promise<void> {
 
 /** List all markdown files (vault-relative) for indexing. */
 export async function listMarkdownFiles(): Promise<string[]> {
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   const out: string[] = [];
   async function walk(dir: string) {
     let entries;

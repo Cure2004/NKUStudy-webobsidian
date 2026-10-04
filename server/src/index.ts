@@ -30,7 +30,7 @@ import { initSearch, qmd } from './services/search.js';
 import { buildLinkGraph, updateLinkGraphForFile } from './services/links.js';
 import { buildFileIndex, indexFile, unindexFile } from './services/fileindex.js';
 import { setBroadcaster, broadcast } from './services/realtime.js';
-import { getVaultRoot, ensureVault, invalidateStat } from './services/vault.js';
+import { getVaultRoot, getContentRoot, ensureVault, invalidateStat } from './services/vault.js';
 import { startAutoSync } from './services/autosync.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -205,7 +205,8 @@ function bearerToken(header: string | undefined): string | undefined {
 
 // --- chokidar watcher: reflect external changes (git pull, direct edits) ---
 async function setupWatcher() {
-  const root = await getVaultRoot();
+  // 监听内容根目录（如 docs/start），使相对路径与文件树/索引一致。
+  const root = await getContentRoot();
   // WEBOBSIDIAN_WATCH: 'auto' (default) = native inotify with automatic polling
   // fallback when the host watch limit is exceeded; 'polling' = force polling.
   const forcePolling = (process.env.WEBOBSIDIAN_WATCH ?? 'auto').toLowerCase() === 'polling';

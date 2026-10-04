@@ -9,6 +9,8 @@ export interface TreeNode {
   mtime?: number;
   ctime?: number;
   children?: TreeNode[];
+  /** 显示名：文件夹中文映射 / md 文档标题；缺省时回退到 name。 */
+  label?: string;
 }
 
 export interface TrashItem {

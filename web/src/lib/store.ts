@@ -492,7 +492,9 @@ export const useStore = create<AppState>()(
           const r = await api.read(path);
           content = typeof r === 'string' ? r : r.content;
         }
-        const title = path.split('/').pop() ?? path;
+        // 显示名优先用后端给的 label（文件夹中文名 / md 文档标题）。
+        const node = findNode(get().tree, path);
+        const title = node?.label || (path.split('/').pop() ?? path);
         set((s) => {
           const tabs = s.tabs.find((t) => t.path === path) ? s.tabs : [...s.tabs, { path, title }];
           const recent = isFolder ? s.recent : [path, ...s.recent.filter((p) => p !== path)].slice(0, 20);

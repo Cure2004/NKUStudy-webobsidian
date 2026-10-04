@@ -375,7 +375,7 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
           {editing ? (
             <RenameInput node={node} onDone={() => setRenamingPath(null)} />
           ) : (
-            <span className="name">{node.name}</span>
+            <span className="name">{node.label ?? node.name}</span>
           )}
         </div>
         {open && (
@@ -414,7 +414,7 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
         {editing ? (
           <RenameInput node={node} onDone={() => setRenamingPath(null)} />
         ) : (
-          <span className="name">{node.name.replace(/\.(md|markdown)$/, '')}</span>
+          <span className="name">{node.label ?? node.name.replace(/\.(md|markdown)$/, '')}</span>
         )}
         {shares.some((s) => s.path === node.path && s.enabled) && (
           <Icon name="globe" size={12} className="share-globe" />

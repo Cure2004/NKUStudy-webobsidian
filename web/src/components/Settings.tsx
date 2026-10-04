@@ -71,6 +71,13 @@ function Row({ name, desc, children }: { name: string; desc?: string; children: 
 function VaultSettings({ s, reload }: { s: any; reload: () => void }) {
   const [path, setPath] = useState(s.vault.path);
   const [deleteMode, setDeleteMode] = useState(s.vault.deleteMode ?? 'trash');
+  const [contentRoot, setContentRoot] = useState(s.vault.root ?? '');
+  const [useDocTitles, setUseDocTitles] = useState(s.vault.useDocTitles !== false);
+  const [labelsText, setLabelsText] = useState(
+    Object.entries(s.vault.folderLabels ?? {})
+      .map(([k, v]) => `${k} = ${v}`)
+      .join('\n'),
+  );
   const [browser, setBrowser] = useState<any>(null);
   const save = async () => {
     await api.putSettings({ vault: { path } });
@@ -81,6 +88,20 @@ function VaultSettings({ s, reload }: { s: any; reload: () => void }) {
     setDeleteMode(mode);
     await api.putSettings({ vault: { deleteMode: mode } });
     await reload();
+  };
+  const saveDisplay = async () => {
+    // 每行 `相对路径 = 中文名`，空行/无等号的行忽略。
+    const folderLabels: Record<string, string> = {};
+    for (const line of labelsText.split('\n')) {
+      const i = line.indexOf('=');
+      if (i < 0) continue;
+      const k = line.slice(0, i).trim();
+      const v = line.slice(i + 1).trim();
+      if (k && v) folderLabels[k] = v;
+    }
+    await api.putSettings({ vault: { root: contentRoot.trim(), useDocTitles, folderLabels } });
+    await reload();
+    alert(t('显示设置已保存，重新加载文件树后生效。'));
   };
   const browse = async (dir?: string) => setBrowser(await api.browse(dir).catch((e) => ({ error: e.message })));
   return (
@@ -110,6 +131,36 @@ function VaultSettings({ s, reload }: { s: any; reload: () => void }) {
         </div>
       )}
       {browser?.error && <div style={{ color: '#e5534b' }}>{browser.error}</div>}
+
+      <h3 style={{ marginTop: 20 }}>{t('显示')}</h3>
+      <Row
+        name={t('内容根目录')}
+        desc={t('相对仓库根的子目录，文件树只显示该目录（如 docs/start）。留空表示整个仓库。')}
+      >
+        <input className="text-input" style={{ width: 260 }} value={contentRoot} onChange={(e) => setContentRoot(e.target.value)} placeholder="docs/start" />
+      </Row>
+      <Row
+        name={t('用文档标题显示 Markdown')}
+        desc={t('开启后，文件树/标签页用文档标题替代英文文件名显示')}
+      >
+        <input type="checkbox" checked={useDocTitles} onChange={(e) => setUseDocTitles(e.target.checked)} />
+      </Row>
+      <Row
+        name={t('文件夹中文名映射')}
+        desc={t('每行一条「相对路径 = 中文名」，与 VitePress config.ts 的 directoryLabels 对应')}
+      >
+        <textarea
+          className="text-input"
+          style={{ width: 320, height: 160, fontFamily: 'var(--font-monospace, monospace)', fontSize: 12 }}
+          value={labelsText}
+          onChange={(e) => setLabelsText(e.target.value)}
+          placeholder={'preface = 序言\nnewstudent = 新生入学\ncampus-life = 校园生活'}
+        />
+      </Row>
+      <div style={{ display: 'flex', gap: 8, margin: '8px 0' }}>
+        <button className="btn" onClick={saveDisplay}>{t('保存显示设置')}</button>
+      </div>
+
       <Row
         name={t('When deleting a file')}
         desc={t('Move to .trash keeps a recoverable copy (Open trash to restore). Permanently delete removes it immediately.')}

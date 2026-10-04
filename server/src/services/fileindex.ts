@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { getVaultRoot, toRel } from './vault.js';
+import { getContentRoot, toRel } from './vault.js';
 
 /**
  * Vault-wide file index for Obsidian-style attachment resolution: an embed like
@@ -28,7 +28,7 @@ function record(maps: { b: Map<string, string>; bn: Map<string, string> }, rel: 
 }
 
 export async function buildFileIndex(): Promise<void> {
-  const root = await getVaultRoot();
+  const root = await getContentRoot();
   const maps = { b: new Map<string, string>(), bn: new Map<string, string>() };
   async function walk(dir: string) {
     let entries;
