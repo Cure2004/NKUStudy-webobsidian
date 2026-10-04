@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, web-edit]
   pull_request:
-    branches: [main]
+    branches: [main, web-edit]
 
 jobs:
   build:
@@ -33,6 +33,57 @@ jobs:
 
       - name: Build desktop bundle
         run: npm --workspace desktop run build
+
+  # 轻量校验前端本地化词条：确认 i18n.ts 存在，且中文词条表没有重复 key。
+  # 重复 key 在 TypeScript 中本会报错，这里额外做一次快速、独立的检查。
+  i18n:
+    name: 本地化词条校验
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 校验 i18n 词条
+        run: |
+          node - <<'EOF'
+          const fs = require('fs');
+          const file = 'web/src/lib/i18n.ts';
+          if (!fs.existsSync(file)) {
+            console.error('未找到本地化文件: ' + file);
+            process.exit(1);
+          }
+          const src = fs.readFileSync(file, 'utf8');
+          const start = src.indexOf('const zh: Record<string, string> = {');
+          if (start === -1) {
+            console.error('未找到 zh 词条表定义');
+            process.exit(1);
+          }
+          const body = src.slice(start);
+          const end = body.indexOf('\n};');
+          const dict = end === -1 ? body : body.slice(0, end);
+          const keyRe = /^[ \t]*'((?:[^'\\]|\\.)*)'[ \t]*:/gm;
+          const seen = new Map();
+          let m;
+          while ((m = keyRe.exec(dict)) !== null) {
+            seen.set(m[1], (seen.get(m[1]) || 0) + 1);
+          }
+          let dup = 0;
+          for (const [key, count] of seen) {
+            if (count > 1) {
+              dup++;
+              console.error("重复词条 key: '" + key + "' 出现 " + count + " 次");
+            }
+          }
+          if (dup > 0) {
+            console.error('发现 ' + dup + ' 个重复词条');
+            process.exit(1);
+          }
+          console.log('本地化词条校验通过，共 ' + seen.size + ' 个唯一 key');
+          EOF
 
   docker:
     name: Docker image builds
