@@ -13,7 +13,6 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
   const role = useStore((s) => s.role);
   const isGuest = role === 'guest';
   const setPalette = useStore((s) => s.setPalette);
-  const openDailyNote = useStore((s) => s.openDailyNote);
   const notify = useStore((s) => s.notify);
   const loadTree = useStore((s) => s.loadTree);
   const setCommitDialog = useStore((s) => s.setCommitDialog);
@@ -56,9 +55,6 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
       </button>
       <button className={leftPanel === 'bookmarks' ? 'active' : ''} title={t('Bookmarks & recent')} onClick={() => setLeftPanel('bookmarks')}>
         <Icon name="bookmark" size={18} />
-      </button>
-      <button title={t('Daily note')} onClick={() => openDailyNote()}>
-        <Icon name="calendar" size={18} />
       </button>
       <button className={leftPanel === 'tags' ? 'active' : ''} title={t('Tags')} onClick={() => setLeftPanel('tags')}>
         <Icon name="hash" size={18} />

@@ -219,7 +219,6 @@ interface AppState {
   /** Tree path currently being inline-renamed (null = none); FileTree shows an input for it. */
   renamingPath: string | null;
   setRenamingPath: (path: string | null) => void;
-  openDailyNote: () => Promise<void>;
   /** Re-fetch content for the active/split tabs (after reload or remote sync). */
   hydrate: () => Promise<void>;
   /** Load persisted workspace state from the server and apply it. */
@@ -608,25 +607,6 @@ export const useStore = create<AppState>()(
           set((st) => ({ expanded: Array.from(new Set([...st.expanded, ...ancestors])) }));
         }
         set({ leftPanel: 'files', leftOpen: true, renamingPath: path });
-      },
-
-      openDailyNote: async () => {
-        const d = new Date();
-        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-          d.getDate(),
-        ).padStart(2, '0')}`;
-        const path = `Daily/${iso}.md`;
-        try {
-          const { path: existing } = await api.resolve(iso);
-          if (existing) {
-            await get().openFile(existing);
-            return;
-          }
-        } catch {
-          /* none */
-        }
-        await get().createNote(path, `# ${iso}\n\n`);
-        get().notify(`Daily note ${iso} ready`);
       },
 
       hydrate: async () => {
