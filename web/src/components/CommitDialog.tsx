@@ -130,8 +130,8 @@ export default function CommitDialog() {
           </div>
 
           <div className="commit-preview">
-            <span style={{ color: 'var(--text-muted)' }}>{t('预览')}：</span>
-            <code>{message}</code>
+            <div className="commit-preview-label">{t('预览')}</div>
+            <code className="commit-preview-value">{message}</code>
           </div>
 
           {err && <div style={{ color: '#e5534b', margin: '6px 0' }}>{err}</div>}
