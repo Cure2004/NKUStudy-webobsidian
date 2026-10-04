@@ -99,6 +99,7 @@ export const clone = (): Promise<void> => withGitLock(cloneImpl);
 export const sync = (message?: string, branch?: string, paths?: string[]): Promise<{ ok: boolean; log: string[] }> =>
   withGitLock(() => syncImpl(message, branch, paths));
 export const changes = (): Promise<GitChange[]> => withGitLock(changesImpl);
+export const discard = (paths: string[]): Promise<number> => withGitLock(() => discardImpl(paths));
 
 /** Compose an authenticated remote URL from settings (PAT embedded). */
 async function authedRemote(): Promise<string> {
@@ -279,8 +280,10 @@ export interface GitCommit {
 export async function log(filePath: string, limit = 50): Promise<GitCommit[]> {
   const g = await git();
   if (!(await isRepo(g))) return [];
+  // 入参为「相对内容根」路径，git 需要「相对仓库根」路径。
+  const repoPath = contentToRepo(filePath, await contentRootPrefix());
   try {
-    const res = await g.log({ file: filePath, maxCount: limit });
+    const res = await g.log({ file: repoPath, maxCount: limit });
     return res.all.map((c) => ({
       hash: c.hash,
       date: c.date,
@@ -292,11 +295,12 @@ export async function log(filePath: string, limit = 50): Promise<GitCommit[]> {
   }
 }
 
-/** File contents at a specific commit (`git show <hash>:<path>`). */
+/** File contents at a specific commit (`git show <hash>:<path>`). 入参为相对内容根路径。 */
 export async function showFile(hash: string, filePath: string): Promise<string> {
   const g = await git();
+  const repoPath = contentToRepo(filePath, await contentRootPrefix());
   // simple-git's show() takes the pathspec as one element; `<hash>:<path>`.
-  return g.show([`${hash}:${filePath}`]);
+  return g.show([`${hash}:${repoPath}`]);
 }
 
 async function pullImpl(): Promise<string> {
@@ -324,9 +328,12 @@ async function pullImpl(): Promise<string> {
   return `Pulled: ${res.summary.changes} changes, +${res.summary.insertions}/-${res.summary.deletions}`;
 }
 
-/** 单个工作区变更（供前端展示 git 风格的文件列表）。 */
+/**
+ * 单个工作区变更（供前端展示 git 风格的文件列表）。
+ * path 使用「相对内容根」的路径（与文件树一致，如 `about/contribute.md`）。
+ */
 export interface GitChange {
-  path: string; // 相对仓库根
+  path: string; // 相对内容根（vault.root）
   /** 变更类型：新增/修改/删除/改名/复制/冲突。 */
   kind: 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'conflicted';
   /** 该文件是否已在暂存区。 */
@@ -344,33 +351,112 @@ function changeKind(f: { index?: string; working_dir?: string }): GitChange['kin
   return 'modified';
 }
 
-/** 列出工作区所有变更（含未跟踪文件），供提交对话框展示与勾选。 */
+/** 内容根相对仓库根的前缀（如 'docs/start'），空串表示仓库根。 */
+async function contentRootPrefix(): Promise<string> {
+  const s = await getSettings();
+  return (s.vault.root ?? '').trim().replace(/^[/\\]+|[/\\]+$/g, '');
+}
+
+/** 仓库相对路径 → 内容根相对路径；不在内容根内返回 null。 */
+function repoToContent(p: string, root: string): string | null {
+  const clean = p.replace(/^[/\\]+/, '');
+  if (!root) return clean;
+  if (clean === root) return '';
+  if (clean.startsWith(root + '/')) return clean.slice(root.length + 1);
+  return null;
+}
+
+/** 内容根相对路径 → 仓库相对路径。 */
+function contentToRepo(p: string, root: string): string {
+  const clean = p.replace(/^[/\\]+/, '');
+  return root ? `${root}/${clean}` : clean;
+}
+
+/** 路径各段均非空且不以点开头（排除 `.trash`、`.obsidian`、`.git` 等）。 */
+function hasNoDotSegments(rel: string): boolean {
+  return rel.split('/').every((seg) => seg && !seg.startsWith('.'));
+}
+
+/**
+ * 列出工作区变更（含未跟踪文件），供提交对话框展示与勾选。
+ * 只保留「内容根目录」下的文件（与文件树一致），并排除回收站 `.trash` 与
+ * 点文件/点目录——这些不是编辑器管理的笔记，不应出现在待提交列表里。
+ * 返回的 path 为「相对内容根」，与文件树口径一致。
+ */
 async function changesImpl(): Promise<GitChange[]> {
   const g = await git();
   if (!(await isRepo(g))) return [];
   const st = await g.status();
-  return st.files.map((f) => ({
-    path: f.path,
-    kind: changeKind(f),
-    // index 非空/非 '?' 表示已暂存（' ' 或 '?' 表示未暂存）。
-    staged: Boolean(f.index && f.index.trim() && f.index !== '?'),
-  }));
+  const root = await contentRootPrefix();
+  const out: GitChange[] = [];
+  for (const f of st.files) {
+    const rel = repoToContent(f.path, root);
+    if (rel === null || !rel || !hasNoDotSegments(rel)) continue;
+    out.push({
+      path: rel,
+      kind: changeKind(f),
+      // index 非空/非 '?' 表示已暂存（' ' 或 '?' 表示未暂存）。
+      staged: Boolean(f.index && f.index.trim() && f.index !== '?'),
+    });
+  }
+  return out;
 }
 
 /**
- * 只暂存指定路径（VS Code 式部分提交）。先清空暂存区，再按路径 `git add -A`
- * （同时覆盖新增/修改/删除）。paths 为空时回退为暂存全部。
+ * 舍弃指定路径的未提交改动，恢复到 HEAD（VS Code 的「Discard Changes」）。
+ * 入参为「相对内容根」路径。已跟踪文件用 `checkout HEAD --` 还原；未跟踪的
+ * 新文件用 `clean -f` 删除。返回实际处理的路径数。
+ */
+async function discardImpl(paths: string[]): Promise<number> {
+  const g = await git();
+  if (!(await isRepo(g))) return 0;
+  const root = await contentRootPrefix();
+  const clean = paths
+    .map((p) => String(p))
+    .filter((p) => p && !p.startsWith('/') && !p.includes('\0'));
+  if (!clean.length) return 0;
+  const repoPaths = clean.map((p) => contentToRepo(p, root));
+
+  // 先看哪些是未跟踪的新文件（index 为 '?'），这些要 clean 而不是 checkout。
+  const st = await g.status();
+  const untracked = new Set(
+    st.files.filter((f) => (f.index ?? '').trim() === '?').map((f) => f.path),
+  );
+  const tracked = repoPaths.filter((p) => !untracked.has(p));
+  const newFiles = repoPaths.filter((p) => untracked.has(p));
+
+  if (tracked.length) {
+    // 还原工作区 + 暂存区到 HEAD（既撤销修改也取消暂存）。
+    await g.raw(['checkout', 'HEAD', '--', ...tracked]);
+  }
+  if (newFiles.length) {
+    await g.raw(['clean', '-f', '--', ...newFiles]);
+  }
+  return clean.length;
+}
+
+/**
+ * 只暂存指定路径（VS Code 式部分提交）。入参为「相对内容根」路径。先清空
+ * 暂存区，再按路径 `git add -A`（同时覆盖新增/修改/删除）。paths 为空时
+ * 回退为「内容根目录下的全部改动」（排除 `.trash` 等点目录）。
  */
 async function stagePaths(g: SimpleGit, paths: string[]): Promise<void> {
+  const root = await contentRootPrefix();
   if (!paths.length) {
-    await g.add('.');
+    // 未指定路径：只暂存内容根，排除回收站，避免把垃圾/越界文件带上。
+    const spec = root || '.';
+    await g.raw(['add', '-A', '--', spec, `:(exclude)${spec}/.trash`]).catch(async () => {
+      await g.add(spec);
+    });
     return;
   }
   // 清空暂存区，保证「只提交勾选的文件」语义可预测（本应用不依赖既有暂存状态）。
   await g.raw(['reset']).catch(() => {});
-  // 过滤掉空串与可疑的绝对路径；`--` 之后一律按路径处理。
-  const clean = paths.map((p) => String(p)).filter((p) => p && !p.startsWith('/') && !p.includes('\0'));
-  await g.raw(['add', '-A', '--', ...clean]);
+  const repoPaths = paths
+    .map((p) => String(p))
+    .filter((p) => p && !p.startsWith('/') && !p.includes('\0'))
+    .map((p) => contentToRepo(p, root));
+  await g.raw(['add', '-A', '--', ...repoPaths]);
 }
 
 /**

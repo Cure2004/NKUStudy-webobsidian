@@ -13,7 +13,7 @@ import { onFileRenamed } from '../services/shares.js';
 import { mimeFor } from '../services/mime.js';
 import { sendFileWithRange } from '../services/httpfile.js';
 import { uploadImage, UploadError } from '../services/upload.js';
-import { assertGuestWritableContent } from '../services/guestpath.js';
+import { assertGuestWritable } from '../services/guestpath.js';
 
 export const filesRouter = Router();
 filesRouter.use(requireAuth);
@@ -26,8 +26,8 @@ const isMd = (p: string) => /\.(md|markdown)$/i.test(p);
 const safeUploadName = (name: string): string =>
   path.posix.basename(String(name ?? '').replace(/\\/g, '/')).replace(/^\.+/, '') || 'file';
 
-/** 访客（公开编辑）只能改动 publicEditor.editableRoot 下的路径。 */
-const assertGuestWritable = assertGuestWritableContent;
+// 访客（公开编辑）只能改动 publicEditor.editableRoot 下的路径；
+// 校验逻辑见 services/guestpath.ts（路径口径：相对内容根）。
 
 /** 访客写操作守卫：仅 guest 受限，owner 不受限。 */
 function guestWriteGuard(req: Request, res: Response, next: NextFunction): void {

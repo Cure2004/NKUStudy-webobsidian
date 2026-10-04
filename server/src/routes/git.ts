@@ -4,7 +4,7 @@ import { requireAuth, requireOwner, denyGuest } from '../middleware/auth.js';
 import * as git from '../services/git.js';
 import { COMMIT_PREFIXES, buildCommitMessage, CommitTemplateError } from '../services/commitTemplate.js';
 import { isGithubAppConfigured } from '../services/githubApp.js';
-import { assertGuestWritableRepo, isGuestWritableRepo } from '../services/guestpath.js';
+import { assertGuestWritable, isGuestWritable } from '../services/guestpath.js';
 
 export const gitRouter = Router();
 // 允许 owner 与（公开编辑开启时的）guest；敏感操作再单独 requireOwner。
@@ -26,7 +26,7 @@ gitRouter.get(
     }
     const visible = [];
     for (const c of all) {
-      if (await isGuestWritableRepo(c.path)) visible.push(c);
+      if (await isGuestWritable(c.path)) visible.push(c);
     }
     res.json({ changes: visible });
   }),
@@ -84,12 +84,12 @@ gitRouter.post(
     // paths 时，自动收敛为「可编辑目录内的全部变更」，绝不放行越界内容。
     if (req.sessionRole === 'guest') {
       if (paths) {
-        for (const p of paths) await assertGuestWritableRepo(p);
+        for (const p of paths) await assertGuestWritable(p);
       } else {
         const all = await git.changes();
         const allowed: string[] = [];
         for (const c of all) {
-          if (await isGuestWritableRepo(c.path)) allowed.push(c.path);
+          if (await isGuestWritable(c.path)) allowed.push(c.path);
         }
         paths = allowed;
       }
@@ -102,6 +102,22 @@ gitRouter.post(
 );
 
 // ---- 以下为 owner 专属（访客不可用）----
+
+// 舍弃未提交改动，恢复到上次提交（VS Code 的「Discard Changes」）。仅 owner。
+gitRouter.post(
+  '/discard',
+  requireOwner,
+  asyncHandler(async (req, res) => {
+    const paths = normalizePaths(req.body?.paths) ?? [];
+    if (!paths.length) {
+      res.status(400).json({ error: 'paths required' });
+      return;
+    }
+    const n = await git.discard(paths);
+    console.log(`[git] discard ${n} path(s)`);
+    res.json({ ok: true, discarded: n });
+  }),
+);
 
 gitRouter.get('/status', requireOwner, asyncHandler(async (_req, res) => res.json(await git.status())));
 

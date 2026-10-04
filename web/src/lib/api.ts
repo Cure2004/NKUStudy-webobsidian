@@ -241,6 +241,12 @@ export const api = {
   commitPrefixes: () => req<{ prefixes: string[] }>('/api/git/commit-prefixes'),
   // 工作区变更列表（git 风格），供提交对话框展示与勾选。
   gitChanges: () => req<{ changes: GitChange[] }>('/api/git/changes'),
+  // 舍弃未提交改动（恢复到上次提交）。仅 owner。
+  gitDiscard: (paths: string[]) =>
+    req<{ ok: true; discarded: number }>('/api/git/discard', {
+      method: 'POST',
+      body: JSON.stringify({ paths }),
+    }),
   githubAppStatus: () => req<{ configured: boolean }>('/api/git/github-app'),
   openPullRequest: (title?: string, body?: string) =>
     req<{ number: number; html_url: string; created: boolean }>('/api/git/pull-request', {

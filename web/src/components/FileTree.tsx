@@ -207,6 +207,23 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
   };
   const doMoveMany = () => setMovePath(useStore.getState().selected);
 
+  // 舍弃未提交改动（仅 owner）：把选中路径恢复到上次提交。
+  const discardPaths = async (paths: string[], label: string) => {
+    if (!confirm(t('Discard changes to {name}? This cannot be undone.', { name: label }))) return;
+    try {
+      const r = await api.gitDiscard(paths);
+      notify(t('Discarded changes to {n} file(s)', { n: r.discarded }));
+      await loadTree();
+    } catch (e: any) {
+      notify(e?.message ?? t('Discard failed'));
+    }
+  };
+  const doDiscardMany = () => {
+    const paths = pruneDescendants(useStore.getState().selected);
+    if (!paths.length) return;
+    void discardPaths(paths, t('{n} items', { n: paths.length }));
+  };
+
   const doRename = () => setRenamingPath(node.path);
   const doDelete = async () => {
     if (confirm(t('Delete "{name}"?', { name: node.name }))) {
@@ -290,6 +307,12 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
         y: e.clientY,
         items: [
           { label: t('Move {n} items to…', { n: sel.length }), onClick: doMoveMany },
+          ...(!isGuest
+            ? [
+                { label: '', separator: true },
+                { label: t('Discard changes'), icon: 'undo', onClick: doDiscardMany },
+              ]
+            : []),
           { label: '', separator: true },
           { label: t('Delete {n} items', { n: sel.length }), danger: true, onClick: doDeleteMany },
         ],
