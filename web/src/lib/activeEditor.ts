@@ -76,19 +76,44 @@ export function editorFind(): boolean {
 }
 
 /**
+ * 计算从当前笔记所在目录到目标资源的相对路径（posix）。
+ * 例：笔记 `newstudent/foo.md`，资源 `attachments/x.png` → `../attachments/x.png`。
+ * 这样 VitePress 才能正确解析（它按笔记所在目录解析相对图片）。
+ */
+/**
+ * 计算从当前笔记所在目录到目标资源的相对路径（posix）。
+ * 例：笔记 `newstudent/foo.md`，资源 `attachments/x.png` → `../attachments/x.png`。
+ * 这样 VitePress 才能正确解析（它按笔记所在目录解析相对图片）。
+ */
+export function relativeToNote(notePath: string | null, target: string): string {
+  if (!notePath) return target;
+  const fromDir = notePath.includes('/') ? notePath.slice(0, notePath.lastIndexOf('/')) : '';
+  const fromSegs = fromDir ? fromDir.split('/') : [];
+  const toSegs = target.split('/');
+  let i = 0;
+  while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
+  const up = fromSegs.length - i;
+  const rest = toSegs.slice(i);
+  const rel = [...Array(up).fill('..'), ...rest].join('/');
+  return rel || target;
+}
+
+/**
  * 上传一张图片并在光标处插入引用。
- * 图床启用时插入 `![alt](远程URL)`，否则回退本地 `![[路径]]`。
+ * 统一使用标准 Markdown 图片语法 `![alt](url)`（VitePress 兼容）：
+ * 图床启用时用远程 URL，否则用相对当前笔记的本地 attachments 路径。
  */
 export async function fmtUploadImage(file: File): Promise<void> {
   const notify = useStore.getState().notify;
   try {
     const r = await api.uploadImage(file);
+    const alt = file.name.replace(/\.[^.]+$/, '');
     if (r.remote) {
-      const alt = file.name.replace(/\.[^.]+$/, '');
       fmtInsert(`![${alt}](${r.url})`);
       notify(t('已上传图片：{url}', { url: r.url }));
     } else {
-      fmtInsert(`![[${r.path}]]`);
+      const rel = relativeToNote(useStore.getState().activePath, r.path);
+      fmtInsert(`![${alt}](${rel})`);
       notify(t('Inserted {path}', { path: r.path }));
     }
   } catch (e: any) {

@@ -11,7 +11,7 @@ import Icon from './Icon';
 import StatusBar from './StatusBar';
 import FormatToolbar from './FormatToolbar';
 import { useIsMobile } from '../lib/useIsMobile';
-import { editorFind, getActiveEditor } from '../lib/activeEditor';
+import { editorFind, getActiveEditor, relativeToNote } from '../lib/activeEditor';
 import { triggerAddProperty } from '../lib/livePreview';
 import { pathToUrl } from '../lib/urlsync';
 import { VIDEO_EXT_RE, AUDIO_EXT_RE } from '../lib/media';
@@ -266,14 +266,16 @@ export default function Workspace() {
       if (!file.type.startsWith('image/')) continue;
       try {
         const r = await api.uploadImage(file);
+        const alt = file.name.replace(/\.[^.]+$/, '');
         if (r.remote) {
-          // 图床返回远程 URL → 用标准 Markdown 图片语法。
-          const alt = file.name.replace(/\.[^.]+$/, '');
+          // 图床返回远程 URL → 标准 Markdown 图片语法。
           setContent(`${content}\n![${alt}](${r.url})\n`);
           notify(t('已上传图片：{url}', { url: r.url }));
         } else {
-          // 回退本地 attachments → 用 Obsidian 嵌入语法。
-          setContent(`${content}\n![[${r.path}]]\n`);
+          // 回退本地 attachments → 同样用标准 Markdown 语法（VitePress 兼容），
+          // 路径相对当前笔记所在目录。
+          const rel = relativeToNote(activePath, r.path);
+          setContent(`${content}\n![${alt}](${rel})\n`);
           notify(t('Inserted {path}', { path: r.path }));
         }
       } catch (e: any) {
