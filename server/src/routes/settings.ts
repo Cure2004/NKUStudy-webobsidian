@@ -5,6 +5,7 @@ import os from 'node:os';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getSettings, updateSettings, redactSettings, ensureVaultBrowsable } from '../services/settings.js';
+import { clearInstallationTokenCache } from '../services/githubApp.js';
 import { config } from '../config.js';
 
 export const settingsRouter = Router();
@@ -38,12 +39,22 @@ settingsRouter.put(
         Object.assign(d.git, rest);
         if (typeof token === 'string' && token && token !== '••••••••') d.git.token = token;
       }
+      if (body.github) {
+        const { privateKey, ...rest } = body.github;
+        Object.assign(d.github, rest);
+        // 私钥仅在非掩码时覆盖；掩码 '••••••••' 表示保留原值。
+        if (typeof privateKey === 'string' && privateKey && privateKey !== '••••••••') {
+          d.github.privateKey = privateKey;
+        }
+      }
       if (body.search) Object.assign(d.search, body.search);
       if (body.ui) Object.assign(d.ui, body.ui);
       if (body.api && typeof body.api.rateLimitPerMin === 'number') {
         d.api.rateLimitPerMin = body.api.rateLimitPerMin;
       }
     });
+    // GitHub App 配置变化后清空 installation token 缓存，使新配置立即生效。
+    if (body.github) clearInstallationTokenCache();
     res.json(redactSettings(updated));
   }),
 );

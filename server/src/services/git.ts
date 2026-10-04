@@ -4,6 +4,13 @@ import { simpleGit, type SimpleGit, type StatusResult } from 'simple-git';
 import { getSettings } from './settings.js';
 import { getVaultRoot } from './vault.js';
 import { redactUrlCreds } from '../lib/redact.js';
+import {
+  authedRemoteWithApp,
+  createOrGetPullRequest,
+  isGithubAppConfigured,
+  parseGithubRemote,
+} from './githubApp.js';
+import { buildCommitMessage, isValidCommitMessage } from './commitTemplate.js';
 
 /** GitHub-native sync with Git LFS support (PRD FR-4). */
 
@@ -96,6 +103,11 @@ async function authedRemote(): Promise<string> {
   const s = await getSettings();
   const url = s.git.remote.trim();
   if (!url) return '';
+  // GitHub App 优先：用 installation token 拼鉴权地址（自动轮换、权限更细）。
+  if (await isGithubAppConfigured()) {
+    const viaApp = await authedRemoteWithApp(url).catch(() => null);
+    if (viaApp) return viaApp;
+  }
   if (s.git.token && url.startsWith('https://')) {
     // https://<token>@github.com/owner/repo.git
     const without = url.replace(/^https:\/\//, '');
@@ -103,6 +115,12 @@ async function authedRemote(): Promise<string> {
     return `https://${s.git.token}@${without}`;
   }
   return url;
+}
+
+/** 在线编辑要推送的目标分支：优先 GitHub 配置的 editBranch，否则回退 git.branch。 */
+async function editBranch(): Promise<string> {
+  const s = await getSettings();
+  return (s.github.editBranch || s.git.branch || 'web-edit').trim();
 }
 
 async function isRepo(g: SimpleGit): Promise<boolean> {
@@ -171,9 +189,10 @@ export async function ensureLfsAttributes(): Promise<void> {
 async function initImpl(): Promise<void> {
   const g = await git();
   const s = await getSettings();
+  const branch = await editBranch();
   if (!(await isRepo(g))) {
     await g.init();
-    await g.checkoutLocalBranch(s.git.branch || 'main').catch(() => {});
+    await g.checkoutLocalBranch(branch).catch(() => {});
   }
   await configureIdentity(g);
   const remote = await authedRemote();
@@ -194,12 +213,13 @@ async function cloneImpl(): Promise<void> {
   const remote = await authedRemote();
   if (!remote) throw new Error('No remote configured');
   const root = await getVaultRoot();
+  const branch = s.github.editBranch || s.git.branch || 'main';
   const entries = await fs.readdir(root).catch(() => []);
   if (entries.filter((e) => e !== '.git').length > 0) {
     throw new Error('Vault directory not empty; cannot clone into it');
   }
   const g = simpleGit();
-  await g.clone(remote, root, ['--branch', s.git.branch || 'main']);
+  await g.clone(remote, root, ['--branch', branch]);
   const gv = await git();
   await configureIdentity(gv);
   if (await lfsAvailable()) await gv.raw(['lfs', 'pull']).catch(() => {});
@@ -286,11 +306,12 @@ async function pullImpl(): Promise<string> {
   // skipped" → the subsequent push hit a diverged remote → "fetch first" forever.
   const remote = await authedRemote();
   if (remote) await g.remote(['set-url', 'origin', remote]);
+  const branch = await editBranch();
   // `--allow-unrelated-histories`: a vault that was `git init`'d locally and a
   // remote that already has commits have no common ancestor; without this, the
   // first pull aborts with "refusing to merge unrelated histories" and sync can
   // never converge. Harmless (no-op) once the histories share a base.
-  const res = await g.pull('origin', s.git.branch || 'main', {
+  const res = await g.pull('origin', branch, {
     '--no-rebase': null,
     '--allow-unrelated-histories': null,
   });
@@ -371,7 +392,15 @@ async function commitAllImpl(message?: string): Promise<string> {
   // A caller-supplied message (e.g. a manual commit with a typed message) wins
   // as the subject; otherwise auto-derive one naming the notes. The file list
   // always goes in the body so `git log` shows precisely what was synced.
-  const finalSubject = message?.trim() || subject;
+  const supplied = message?.trim();
+  // 在线编辑必须经过提交模板：调用方传入的信息需符合「中文前缀: 描述」规范，
+  // 否则拒绝提交（避免产生不符合 Wiki 仓库 CI 校验的提交）。
+  if (supplied && !isValidCommitMessage(supplied)) {
+    throw new Error(
+      '提交信息不符合规范，请使用「中文前缀: 详细说明」格式（例如「新增: 添加市北校区建筑与设施信息」）',
+    );
+  }
+  const finalSubject = supplied || subject;
   const full = body ? `${finalSubject}\n\n${body}` : finalSubject;
   const res = await g.commit(full);
   return `Committed ${res.commit || ''} (${res.summary.changes} files): ${finalSubject}`;
@@ -379,11 +408,39 @@ async function commitAllImpl(message?: string): Promise<string> {
 
 async function pushImpl(): Promise<string> {
   const g = await git();
-  const s = await getSettings();
+  const branch = await editBranch();
   const remote = await authedRemote();
   if (remote) await g.remote(['set-url', 'origin', remote]);
-  await g.push('origin', s.git.branch || 'main', ['--set-upstream']);
-  return 'Pushed to origin';
+  // 在线编辑统一推送到 origin/<editBranch>（默认 web-edit）。
+  // 用显式 refspec 推送当前 HEAD，避免本地分支名与目标分支名不一致的问题。
+  await g.push('origin', `HEAD:refs/heads/${branch}`);
+  return `已推送到 origin/${branch}`;
+}
+
+/**
+ * 为在线编辑分支创建（或复用）Pull Request：editBranch → baseBranch。
+ * 需要 GitHub App 已配置且能解析出 owner/repo。
+ */
+export async function openPullRequest(opts?: {
+  title?: string;
+  body?: string;
+}): Promise<{ number: number; html_url: string; created: boolean }> {
+  const s = await getSettings();
+  if (!(await isGithubAppConfigured())) {
+    throw new Error('GitHub App 尚未配置，无法创建 PR');
+  }
+  const remote = s.git.remote.trim();
+  const parsed = parseGithubRemote(remote);
+  const owner = s.github.owner || parsed?.owner || '';
+  const repo = s.github.repo || parsed?.repo || '';
+  if (!owner || !repo) throw new Error('无法确定目标仓库（owner/repo）');
+  const head = s.github.editBranch || 'web-edit';
+  const base = s.github.baseBranch || s.git.branch || 'contribute';
+  const title = opts?.title?.trim() || `在线编辑: 更新 ${head} 分支`;
+  const body =
+    opts?.body?.trim() ||
+    `本 PR 由 QUT WiKi 在线编辑器自动创建，来源分支：\`${head}\`，目标分支：\`${base}\`。\n\n请审核内容后合并。`;
+  return createOrGetPullRequest({ owner, repo, title, body, head, base });
 }
 
 // Debounced auto-commit (+push) after saves, when enabled in settings.
@@ -477,6 +534,16 @@ async function syncImpl(message?: string): Promise<{ ok: boolean; log: string[] 
     // Redact: a push failure echoes the authenticated remote URL (PAT embedded).
     log.push(`Push failed: ${redactUrlCreds(e.message)}`);
     return { ok: false, log };
+  }
+  // 推送成功后，如启用 GitHub App 且开启自动 PR，则为 web-edit → base 创建/复用 PR。
+  try {
+    const s = await getSettings();
+    if (s.github.autoPullRequest && (await isGithubAppConfigured())) {
+      const pr = await openPullRequest();
+      log.push(pr.created ? `已创建 PR #${pr.number}：${pr.html_url}` : `已复用现有 PR #${pr.number}：${pr.html_url}`);
+    }
+  } catch (e: any) {
+    log.push(`PR 创建失败（内容已推送）：${redactUrlCreds(e.message)}`);
   }
   return { ok: true, log };
 }

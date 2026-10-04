@@ -54,6 +54,24 @@ const SettingsSchema = z.object({
         .default(['*.png', '*.jpg', '*.jpeg', '*.gif', '*.pdf', '*.mp4', '*.mov', '*.zip']),
     })
     .default({}),
+  // GitHub App 鉴权 + 在线投稿（PR）配置。
+  github: z
+    .object({
+      // 是否启用 GitHub App 鉴权（优先于 PAT）。
+      appEnabled: z.boolean().default(false),
+      appId: z.string().default(''),
+      privateKey: z.string().default(''),
+      installationId: z.string().default(''),
+      // 目标仓库（在线编辑统一提交到该仓库的 web-edit 分支）。
+      owner: z.string().default('QUT-Lib'),
+      repo: z.string().default('QUT-WiKi'),
+      // 在线编辑推送的分支与 PR 的目标分支。
+      editBranch: z.string().default('web-edit'),
+      baseBranch: z.string().default('contribute'),
+      // 是否自动为 web-edit 分支创建/更新 PR。
+      autoPullRequest: z.boolean().default(true),
+    })
+    .default({}),
   search: z
     .object({
       fuzzy: z.number().default(0.2),
@@ -194,6 +212,12 @@ export function redactSettings(s: Settings) {
       hasOverridePassword: Boolean(s.auth.passwordHash),
     },
     git: { ...s.git, token: s.git.token ? '••••••••' : '' },
+    github: {
+      ...s.github,
+      // 私钥绝不下发；仅告知是否已配置。
+      privateKey: s.github.privateKey ? '••••••••' : '',
+      hasPrivateKey: Boolean(s.github.privateKey),
+    },
     api: {
       ...s.api,
       keys: s.api.keys.map((k) => ({
