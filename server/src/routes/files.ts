@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import { Router, type Request, type Response, type NextFunction } from 'express';
 import multer from 'multer';
 import path from 'node:path';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, denyGuest } from '../middleware/auth.js';
 import * as vault from '../services/vault.js';
 import { getSettings } from '../services/settings.js';
 import { qmd } from '../services/search.js';
@@ -20,6 +20,54 @@ filesRouter.use(requireAuth);
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 512 * 1024 * 1024 } });
 
 const isMd = (p: string) => /\.(md|markdown)$/i.test(p);
+
+/** 取上传文件名的纯文件名，去掉任何目录/穿越片段（防止 originalname 携带 ../）。 */
+const safeUploadName = (name: string): string =>
+  path.posix.basename(String(name ?? '').replace(/\\/g, '/')).replace(/^\.+/, '') || 'file';
+
+/**
+ * 访客（公开编辑）只能改动 publicEditor.editableRoot 下的路径。
+ * 注意：路径是相对内容根目录（vault.root，如 docs/start）的，而 editableRoot
+ * 是相对仓库根的（如 docs/start）。这里统一换算成「相对内容根」来比较：
+ *   内容根 = vault.root（相对仓库根）
+ *   允许前缀 = editableRoot 去掉 vault.root 前缀后的部分
+ * 例：vault.root=docs/start、editableRoot=docs/start → 允许前缀 = ''（全部可编辑）。
+ *     vault.root=''、editableRoot=docs/start → 允许前缀 = 'docs/start'。
+ */
+async function assertGuestWritable(rel: string): Promise<void> {
+  const s = await getSettings();
+  const repoRoot = (s.vault.root ?? '').trim().replace(/^[/\\]+|[/\\]+$/g, '');
+  const editable = (s.publicEditor.editableRoot ?? '').trim().replace(/^[/\\]+|[/\\]+$/g, '');
+  // 计算 editableRoot 相对内容根的允许前缀。
+  let allowPrefix = editable;
+  if (repoRoot) {
+    if (editable === repoRoot) allowPrefix = '';
+    else if (editable.startsWith(repoRoot + '/')) allowPrefix = editable.slice(repoRoot.length + 1);
+    else allowPrefix = editable; // 不相交：按原样比较（通常不会发生）
+  }
+  const clean = rel.replace(/^[/\\]+/, '');
+  if (allowPrefix && !(clean === allowPrefix || clean.startsWith(allowPrefix + '/'))) {
+    throw Object.assign(new Error('公开编辑仅允许修改指定目录'), { status: 403 });
+  }
+}
+
+/** 访客写操作守卫：仅 guest 受限，owner 不受限。 */
+function guestWriteGuard(req: Request, res: Response, next: NextFunction): void {
+  if (req.sessionRole !== 'guest') {
+    next();
+    return;
+  }
+  // 收集请求里涉及的路径（query.path / body.path / body.from / body.to / body.dir）。
+  const paths: string[] = [];
+  for (const v of [req.query.path, req.body?.path, req.body?.from, req.body?.to, req.body?.dir]) {
+    if (typeof v === 'string' && v) paths.push(v);
+  }
+  Promise.all(paths.map((p) => assertGuestWritable(p)))
+    .then(() => next())
+    .catch((e) => {
+      res.status(e?.status ?? 403).json({ error: e?.message ?? 'Forbidden' });
+    });
+}
 
 // Refresh derived indexes after a mutation (best-effort, non-blocking).
 // Incremental: only the touched file(s) are reparsed, not the whole vault.
@@ -63,6 +111,7 @@ filesRouter.get(
 
 filesRouter.put(
   '/content',
+  guestWriteGuard,
   asyncHandler(async (req, res) => {
     const { path: rel, content } = req.body ?? {};
     if (typeof rel !== 'string' || typeof content !== 'string') {
@@ -77,6 +126,7 @@ filesRouter.put(
 
 filesRouter.post(
   '/folder',
+  guestWriteGuard,
   asyncHandler(async (req, res) => {
     const { path: rel } = req.body ?? {};
     if (typeof rel !== 'string') {
@@ -91,6 +141,7 @@ filesRouter.post(
 filesRouter.post(
   '/upload',
   upload.single('file'),
+  guestWriteGuard,
   asyncHandler(async (req, res) => {
     const dir = String(req.body?.dir ?? '');
     const file = req.file;
@@ -101,7 +152,7 @@ filesRouter.post(
     // Reuse an existing folder that differs only in case (e.g. an Obsidian vault's
     // "Attachments") instead of creating a duplicate "attachments". See vault.ts.
     const resolvedDir = dir ? await vault.resolveDirCaseInsensitive(dir) : '';
-    const rel = path.posix.join(resolvedDir, file.originalname);
+    const rel = path.posix.join(resolvedDir, safeUploadName(file.originalname));
     await vault.writeFileBuffer(rel, file.buffer);
     res.json({ ok: true, path: rel, size: file.size });
   }),
@@ -114,6 +165,7 @@ filesRouter.post(
 filesRouter.post(
   '/upload-image',
   upload.single('file'),
+  guestWriteGuard,
   asyncHandler(async (req, res) => {
     const file = req.file;
     if (!file) {
@@ -132,7 +184,7 @@ filesRouter.post(
         // 未启用图床：回退到本地 attachments。
         const s = await getSettings();
         const resolvedDir = await vault.resolveDirCaseInsensitive(s.vault.attachmentDir || 'attachments');
-        const rel = path.posix.join(resolvedDir, file.originalname);
+        const rel = path.posix.join(resolvedDir, safeUploadName(file.originalname));
         await vault.writeFileBuffer(rel, file.buffer);
         res.json({ ok: true, remote: false, path: rel, size: file.size });
         return;
@@ -144,6 +196,7 @@ filesRouter.post(
 
 filesRouter.patch(
   '/rename',
+  guestWriteGuard,
   asyncHandler(async (req, res) => {
     const { from, to } = req.body ?? {};
     if (typeof from !== 'string' || typeof to !== 'string') {
@@ -160,6 +213,7 @@ filesRouter.patch(
 
 filesRouter.post(
   '/copy',
+  guestWriteGuard,
   asyncHandler(async (req, res) => {
     const { from, to } = req.body ?? {};
     if (typeof from !== 'string' || typeof to !== 'string') {
@@ -184,6 +238,7 @@ filesRouter.post(
 
 filesRouter.get(
   '/trash',
+  denyGuest,
   asyncHandler(async (_req, res) => {
     res.json({ items: await vault.listTrash() });
   }),
@@ -191,6 +246,7 @@ filesRouter.get(
 
 filesRouter.post(
   '/trash/restore',
+  denyGuest,
   asyncHandler(async (req, res) => {
     const rel = String(req.body?.path ?? '');
     if (!rel) {
@@ -206,6 +262,7 @@ filesRouter.post(
 // Permanently delete one trashed item.
 filesRouter.delete(
   '/trash/item',
+  denyGuest,
   asyncHandler(async (req, res) => {
     const rel = String(req.query.path ?? '');
     if (!rel) {
@@ -220,6 +277,7 @@ filesRouter.delete(
 // Empty the whole trash.
 filesRouter.delete(
   '/trash',
+  denyGuest,
   asyncHandler(async (_req, res) => {
     await vault.emptyTrash();
     res.json({ ok: true });
@@ -228,6 +286,7 @@ filesRouter.delete(
 
 filesRouter.delete(
   '/',
+  guestWriteGuard,
   asyncHandler(async (req, res) => {
     const rel = String(req.query.path ?? '');
     if (!rel) {

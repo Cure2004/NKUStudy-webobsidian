@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireOwner } from '../middleware/auth.js';
 import { readUiState, writeUiState } from '../services/uistate.js';
 import { broadcast } from '../services/realtime.js';
 
 export const uiStateRouter = Router();
-uiStateRouter.use(requireAuth);
+// 工作区状态是全局单份（owner 的），公开模式下访客不得读写，避免覆盖 owner 的布局。
+uiStateRouter.use(requireOwner);
 
 uiStateRouter.get(
   '/',

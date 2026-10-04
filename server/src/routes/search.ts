@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, denyGuest } from '../middleware/auth.js';
 import { qmd } from '../services/search.js';
 import { backlinksFor, graphData, resolveLink, buildLinkGraph } from '../services/links.js';
 import { resolveFile } from '../services/fileindex.js';
@@ -61,6 +61,7 @@ searchRouter.get(
 
 searchRouter.post(
   '/property-types',
+  denyGuest,
   asyncHandler(async (req, res) => {
     const { key, type } = req.body ?? {};
     if (typeof key !== 'string' || typeof type !== 'string') {
@@ -105,6 +106,7 @@ searchRouter.get(
 
 searchRouter.post(
   '/reindex',
+  denyGuest,
   asyncHandler(async (_req, res) => {
     await qmd.build();
     await buildLinkGraph();
