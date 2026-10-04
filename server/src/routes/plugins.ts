@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireOwner } from '../middleware/auth.js';
 import * as plugins from '../services/plugins.js';
 
 export const pluginsRouter = Router();
-pluginsRouter.use(requireAuth);
+pluginsRouter.use(requireOwner);
 
 pluginsRouter.get('/', asyncHandler(async (_req, res) => res.json({ plugins: await plugins.listInstalled() })));
 

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { Request } from 'express';
 import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireOwner } from '../middleware/auth.js';
 import * as vault from '../services/vault.js';
 import { resolveFile } from '../services/fileindex.js';
 import { hashPassword, verifyPassword } from '../services/auth.js';
@@ -28,7 +28,7 @@ function redact(rec: ShareRecord) {
 /** ---- Management API (session auth) — /api/shares ------------------------- */
 
 export const sharesRouter = Router();
-sharesRouter.use(requireAuth);
+sharesRouter.use(requireOwner);
 
 sharesRouter.get(
   '/',

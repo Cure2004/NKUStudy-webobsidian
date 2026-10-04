@@ -91,12 +91,12 @@ function withGitLock<T>(fn: () => Promise<T>): Promise<T> {
 // avoid re-entering the queue and dead-locking.
 export const status = (): Promise<GitStatus> => withGitLock(statusImpl);
 export const pull = (): Promise<string> => withGitLock(pullImpl);
-export const push = (): Promise<string> => withGitLock(pushImpl);
+export const push = (branch?: string): Promise<string> => withGitLock(() => pushImpl(branch));
 export const commitAll = (message?: string): Promise<string> => withGitLock(() => commitAllImpl(message));
 export const init = (): Promise<void> => withGitLock(initImpl);
 export const clone = (): Promise<void> => withGitLock(cloneImpl);
-export const sync = (message?: string): Promise<{ ok: boolean; log: string[] }> =>
-  withGitLock(() => syncImpl(message));
+export const sync = (message?: string, branch?: string): Promise<{ ok: boolean; log: string[] }> =>
+  withGitLock(() => syncImpl(message, branch));
 
 /** Compose an authenticated remote URL from settings (PAT embedded). */
 async function authedRemote(): Promise<string> {
@@ -406,9 +406,10 @@ async function commitAllImpl(message?: string): Promise<string> {
   return `Committed ${res.commit || ''} (${res.summary.changes} files): ${finalSubject}`;
 }
 
-async function pushImpl(): Promise<string> {
+async function pushImpl(branchOverride?: string): Promise<string> {
   const g = await git();
-  const branch = await editBranch();
+  // 访客投稿强制推送到 web-edit（branchOverride），不信任任何客户端输入。
+  const branch = branchOverride || (await editBranch());
   const remote = await authedRemote();
   if (remote) await g.remote(['set-url', 'origin', remote]);
   // 在线编辑统一推送到 origin/<editBranch>（默认 web-edit）。
@@ -504,7 +505,7 @@ async function recoverMerge(g: SimpleGit): Promise<void> {
 /** Convenience: stage+commit+pull+push in one go. Reports conflicts. Runs entirely
  *  inside the git queue (via the exported `sync` wrapper), so it calls the unlocked
  *  *Impl helpers directly — re-entering withGitLock here would dead-lock. */
-async function syncImpl(message?: string): Promise<{ ok: boolean; log: string[] }> {
+async function syncImpl(message?: string, branchOverride?: string): Promise<{ ok: boolean; log: string[] }> {
   const log: string[] = [];
   const g = await git();
   if (!(await isRepo(g))) {
@@ -529,7 +530,7 @@ async function syncImpl(message?: string): Promise<{ ok: boolean; log: string[] 
     }
   }
   try {
-    log.push(await pushImpl());
+    log.push(await pushImpl(branchOverride));
   } catch (e: any) {
     // Redact: a push failure echoes the authenticated remote URL (PAT embedded).
     log.push(`Push failed: ${redactUrlCreds(e.message)}`);
