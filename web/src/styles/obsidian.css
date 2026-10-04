@@ -1454,6 +1454,35 @@ body.wo-col-resizing .sidebar, body.wo-col-resizing .right-sidebar { transition:
   padding-bottom: 6px; border-bottom: 1px solid var(--bg-modifier-border, #444);
 }
 .commit-preview-value { color: var(--text-normal); font-family: var(--font-monospace, monospace); word-break: break-all; }
+/* git 风格变更列表（可勾选部分提交） */
+.commit-changes-head {
+  display: flex; align-items: center; gap: 6px; margin: 0 0 6px;
+}
+.commit-changes-title { font-size: 13px; font-weight: 600; color: var(--text-normal); }
+.commit-changes-count { margin-left: 6px; font-size: 11px; font-weight: 500; color: var(--text-muted); }
+.commit-changes {
+  max-height: 200px; overflow: auto; padding: 4px;
+  background: var(--bg-primary); border: 1px solid var(--bg-modifier-border, #444);
+  border-radius: 6px;
+}
+.commit-changes-empty { padding: 14px; text-align: center; color: var(--text-faint); font-size: 13px; }
+.commit-change {
+  display: flex; align-items: center; gap: 8px; padding: 3px 6px;
+  border-radius: 4px; cursor: pointer; font-size: 13px;
+}
+.commit-change:hover { background: var(--bg-modifier-hover, rgba(255,255,255,0.06)); }
+.commit-change input { flex-shrink: 0; cursor: pointer; }
+.commit-change-badge {
+  flex-shrink: 0; width: 14px; text-align: center;
+  font-family: var(--font-monospace, monospace); font-weight: 700; font-size: 12px;
+}
+.commit-change-path {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text-normal);
+}
+.commit-change.checked .commit-change-path { color: var(--text-normal); }
+.commit-change:not(.checked) .commit-change-path { color: var(--text-faint); text-decoration: line-through; }
+.commit-hint { color: var(--text-muted); margin: 12px 0 8px; font-size: 12px; }
 .commit-log {
   margin: 8px 0 0; padding: 10px; max-height: 180px; overflow: auto;
   background: var(--bg-primary); border: 1px solid var(--bg-modifier-border, #444);
