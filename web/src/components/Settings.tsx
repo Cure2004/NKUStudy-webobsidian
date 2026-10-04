@@ -329,7 +329,7 @@ function GitHubAppSettings({
       </Row>
       <Row name={t('仓库 owner')}><input className="text-input" style={{ width: 200 }} value={gh.owner ?? ''} onChange={(e) => set('owner', e.target.value)} /></Row>
       <Row name={t('仓库名 repo')}><input className="text-input" style={{ width: 200 }} value={gh.repo ?? ''} onChange={(e) => set('repo', e.target.value)} /></Row>
-      <Row name={t('编辑分支')} desc={t('在线编辑推送到��分支（默认 web-edit）')}>
+      <Row name={t('编辑分支')} desc={t('在线编辑推送到该分支（默认 web-edit）')}>
         <input className="text-input" style={{ width: 160 }} value={gh.editBranch ?? ''} onChange={(e) => set('editBranch', e.target.value)} />
       </Row>
       <Row name={t('PR 目标分支')} desc={t('创建 Pull Request 时的目标分支')}>

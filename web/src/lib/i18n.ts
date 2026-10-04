@@ -26,7 +26,7 @@ type Vars = Record<string, string | number>;
 
 /** 中文词条表：英文原文 → 简体中文。 */
 const zh: Record<string, string> = {
-  // ---- 通�� ----
+  // ---- 通用 ----
   'Settings': '设置',
   'Close': '关闭',
   'Cancel': '取消',
@@ -69,6 +69,7 @@ const zh: Record<string, string> = {
   'Choose a password different from the default': '请设置一个不同于默认密码的新密码',
   'Failed to change password': '修改密码失败',
   'Log out': '退出登录',
+  '管理员登录': '管理员登录',
 
   // ---- 侧边栏 / 导航 ----
   'Files': '文件',
@@ -224,7 +225,7 @@ const zh: Record<string, string> = {
   // ---- 状态栏 ----
   'No vault sync': '未启用同步',
   'git {branch}': 'git {branch}',
-  '{n} unsaved changes': '{n} 项���保存的更改',
+  '{n} unsaved changes': '{n} 项未保存的更改',
   '{n} words': '{n} 个词',
   '{n} characters': '{n} 个字符',
   'Git sync': 'Git 同步',
@@ -304,7 +305,7 @@ const zh: Record<string, string> = {
   'Remove group': '移除分组',
   'Display': '显示',
   'Arrows': '箭头',
-  'Text fade threshold': '文字淡出阈��',
+  'Text fade threshold': '文字淡出阈值',
   'Node size': '节点大小',
   'Link thickness': '连线粗细',
   'Animate': '重新布局',
@@ -585,7 +586,7 @@ const zh: Record<string, string> = {
   '提交信息格式为「中文前缀: 详细说明」，与 Wiki 仓库的 CI 校验一致。':
     '提交信息格式为「中文前缀: 详细说明」，与 Wiki 仓库的 CI 校验一致。',
   '前缀': '前缀',
-  '选择本次改动的类型': '选择本次改动��类型',
+  '选择本次改动的类型': '选择本次改动的类型',
   '描述': '描述',
   '用中文简要说明本次改动，至少 2 个字符': '用中文简要说明本次改动，至少 2 个字符',
   '例如：添加市北校区建筑与设施信息': '例如：添加市北校区建筑与设施信息',
@@ -611,7 +612,7 @@ const zh: Record<string, string> = {
   'Installation ID': 'Installation ID',
   '安装到目标仓库后获得的 Installation ID': '安装到目标仓库后获得的 Installation ID',
   '私钥（.pem）': '私钥（.pem）',
-  '粘贴 .pem 文件全文；已保存时显示为���码，保持不变即不修改': '粘贴 .pem 文件全文；已保存时显示为掩码，保持不变即不修改',
+  '粘贴 .pem 文件全文；已保存时显示为掩码，保持不变即不修改': '粘贴 .pem 文件全文；已保存时显示为掩码，保持不变即不修改',
   '仓库 owner': '仓库 owner',
   '仓库名 repo': '仓库名 repo',
   '编辑分支': '编辑分支',
