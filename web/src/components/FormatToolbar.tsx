@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import type { IconName } from './Icon';
 import { t } from '../lib/i18n';
@@ -12,6 +12,7 @@ import {
   fmtOutdent,
   fmtUndo,
   fmtRedo,
+  fmtUploadImage,
 } from '../lib/activeEditor';
 
 type Btn = { icon: IconName; title: string; run: () => void };
@@ -33,7 +34,7 @@ const BUTTONS: Btn[] = [
   { icon: 'redo', title: 'Redo', run: () => fmtRedo() },
 ];
 
-function Buttons({ size }: { size: number }) {
+function Buttons({ size, onPickImage }: { size: number; onPickImage: () => void }) {
   return (
     <>
       {BUTTONS.map((b) => (
@@ -47,6 +48,9 @@ function Buttons({ size }: { size: number }) {
           <Icon name={b.icon} size={size} />
         </button>
       ))}
+      <button title={t('上传图片')} onPointerDown={(e) => e.preventDefault()} onClick={onPickImage}>
+        <Icon name="image" size={size} />
+      </button>
     </>
   );
 }
@@ -59,6 +63,7 @@ function Buttons({ size }: { size: number }) {
  */
 export default function FormatToolbar({ mobile = false }: { mobile?: boolean }) {
   const [bottom, setBottom] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!mobile) return;
@@ -79,16 +84,28 @@ export default function FormatToolbar({ mobile = false }: { mobile?: boolean }) 
     };
   }, [mobile]);
 
+  const onPickImage = () => fileRef.current?.click();
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) await fmtUploadImage(file);
+  };
+  const hiddenInput = (
+    <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFileChange} />
+  );
+
   if (mobile) {
     return (
       <div className="mobile-toolbar" style={{ bottom }}>
-        <Buttons size={20} />
+        <Buttons size={20} onPickImage={onPickImage} />
+        {hiddenInput}
       </div>
     );
   }
   return (
     <div className="format-toolbar">
-      <Buttons size={16} />
+      <Buttons size={16} onPickImage={onPickImage} />
+      {hiddenInput}
     </div>
   );
 }

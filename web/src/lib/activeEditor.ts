@@ -2,6 +2,9 @@ import type { EditorView } from '@codemirror/view';
 import { undo, redo, indentMore, indentLess } from '@codemirror/commands';
 import { openSearchPanel } from '@codemirror/search';
 import { toggleInline, toggleChecklist, insertLink } from './editorCommands';
+import { api } from './api';
+import { useStore } from './store';
+import { t } from './i18n';
 
 /**
  * Module-level handle to the currently-mounted CodeMirror editor, so UI outside
@@ -70,4 +73,25 @@ export function editorFind(): boolean {
   if (!active) return false;
   openSearchPanel(active);
   return true;
+}
+
+/**
+ * 上传一张图片并在光标处插入引用。
+ * 图床启用时插入 `![alt](远程URL)`，否则回退本地 `![[路径]]`。
+ */
+export async function fmtUploadImage(file: File): Promise<void> {
+  const notify = useStore.getState().notify;
+  try {
+    const r = await api.uploadImage(file);
+    if (r.remote) {
+      const alt = file.name.replace(/\.[^.]+$/, '');
+      fmtInsert(`![${alt}](${r.url})`);
+      notify(t('已上传图片：{url}', { url: r.url }));
+    } else {
+      fmtInsert(`![[${r.path}]]`);
+      notify(t('Inserted {path}', { path: r.path }));
+    }
+  } catch (e: any) {
+    notify(e?.message ?? t('上传失败'));
+  }
 }
