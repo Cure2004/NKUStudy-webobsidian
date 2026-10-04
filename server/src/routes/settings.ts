@@ -50,6 +50,12 @@ settingsRouter.put(
           d.github.privateKey = privateKey;
         }
       }
+      if (body.upload) {
+        const { key, ...rest } = body.upload;
+        Object.assign(d.upload, rest);
+        // key 仅在非掩码时覆盖；掩码 '••••••••' 表示保留原值。
+        if (typeof key === 'string' && key && key !== '••••••••') d.upload.key = key;
+      }
       if (body.search) Object.assign(d.search, body.search);
       if (body.ui) Object.assign(d.ui, body.ui);
       if (body.api && typeof body.api.rateLimitPerMin === 'number') {

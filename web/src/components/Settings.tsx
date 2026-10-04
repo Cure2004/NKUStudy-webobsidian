@@ -260,6 +260,7 @@ function GitSettings({ s, reload }: { s: any; reload: () => void }) {
         />
       </div>
       <GitHubAppSettings s={s} reload={reload} append={append} />
+      <UploadSettings s={s} reload={reload} append={append} />
     </div>
   );
 }
@@ -340,6 +341,63 @@ function GitHubAppSettings({
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <button className="btn" onClick={save}>{t('Save')}</button>
         <button className="btn secondary" onClick={testPr}>{t('测试：创建 PR')}</button>
+      </div>
+    </div>
+  );
+}
+
+/** 图片上传（PicList-Core 图床）配置。 */
+function UploadSettings({ s, reload, append }: { s: any; reload: () => void; append: (lines: string[]) => void }) {
+  const [up, setUp] = useState({ ...(s.upload ?? {}) });
+  const [testing, setTesting] = useState(false);
+  const set = (k: string, v: any) => setUp((p: any) => ({ ...p, [k]: v }));
+
+  const save = async () => {
+    await api.putSettings({ upload: up });
+    await reload();
+    append([t('图片上传设置已保存')]);
+  };
+
+  const testUpload = async () => {
+    setTesting(true);
+    append([t('正在测试上传…')]);
+    try {
+      // 生成一张 1x1 PNG 测试。
+      const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+      const file = new File([png], 'test.png', { type: 'image/png' });
+      const r = await api.uploadImage(file);
+      append([r.remote ? t('上传成功：{url}', { url: r.url }) : t('图床未启用，已回退本地：{path}', { path: r.path })]);
+    } catch (e: any) {
+      append([t('Error: {msg}', { msg: e.message })]);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 24, borderTop: '1px solid var(--bg-modifier-border)', paddingTop: 12 }}>
+      <h2>{t('图片上传（图床）')}</h2>
+      <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+        {t('启用后，编辑器内粘贴/拖入的图片会上传到 PicList-Core 图床并插入远程链接；未启用则存到 vault 的 attachments 目录。')}
+      </p>
+      <Row name={t('启用图床上传')}>
+        <input type="checkbox" checked={!!up.enabled} onChange={(e) => set('enabled', e.target.checked)} />
+      </Row>
+      <Row name={t('图床地址')} desc={t('PicList-Core 服务地址，例如 https://piclist.example.com（结尾不要带斜杠）')}>
+        <input className="text-input" style={{ width: 320 }} value={up.server ?? ''} onChange={(e) => set('server', e.target.value)} placeholder="https://piclist.example.com" />
+      </Row>
+      <Row name={t('接口 key')} desc={t('对应 picgo-server 启动参数 -k；已保存时显示为掩码，保持不变即不修改')}>
+        <input className="text-input" type="password" style={{ width: 320 }} value={up.key ?? ''} onChange={(e) => set('key', e.target.value)} />
+      </Row>
+      <Row name={t('上传路径')} desc={t('默认 /upload')}>
+        <input className="text-input" style={{ width: 160 }} value={up.path ?? ''} onChange={(e) => set('path', e.target.value)} placeholder="/upload" />
+      </Row>
+      <Row name={t('文件字段名')} desc={t('PicList-Core 为 file')}>
+        <input className="text-input" style={{ width: 160 }} value={up.field ?? ''} onChange={(e) => set('field', e.target.value)} placeholder="file" />
+      </Row>
+      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <button className="btn" onClick={save}>{t('Save')}</button>
+        <button className="btn secondary" onClick={testUpload} disabled={testing}>{testing ? t('测试中…') : t('测试上传')}</button>
       </div>
     </div>
   );

@@ -82,6 +82,21 @@ const SettingsSchema = z.object({
       autoPullRequest: z.boolean().default(true),
     })
     .default({}),
+  // 图片上传（PicList-Core 图床）。
+  upload: z
+    .object({
+      // 是否启用外部图床上传（否则图片仍存到 vault 的 attachments）。
+      enabled: z.boolean().default(false),
+      // PicList-Core 服务地址，例如 https://piclist.example.com
+      server: z.string().default(''),
+      // 接口鉴权 key（对应 picgo-server 的 -k）。
+      key: z.string().default(''),
+      // 上传接口路径（默认 /upload）。
+      path: z.string().default('/upload'),
+      // 表单文件字段名（PicList-Core 为 file）。
+      field: z.string().default('file'),
+    })
+    .default({}),
   search: z
     .object({
       fuzzy: z.number().default(0.2),
@@ -228,6 +243,7 @@ export function redactSettings(s: Settings) {
       privateKey: s.github.privateKey ? '••••••••' : '',
       hasPrivateKey: Boolean(s.github.privateKey),
     },
+    upload: { ...s.upload, key: s.upload.key ? '••••••••' : '' },
     api: {
       ...s.api,
       keys: s.api.keys.map((k) => ({

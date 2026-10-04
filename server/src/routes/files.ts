@@ -12,6 +12,7 @@ import { resolveFile } from '../services/fileindex.js';
 import { onFileRenamed } from '../services/shares.js';
 import { mimeFor } from '../services/mime.js';
 import { sendFileWithRange } from '../services/httpfile.js';
+import { uploadImage, UploadError } from '../services/upload.js';
 
 export const filesRouter = Router();
 filesRouter.use(requireAuth);
@@ -103,6 +104,41 @@ filesRouter.post(
     const rel = path.posix.join(resolvedDir, file.originalname);
     await vault.writeFileBuffer(rel, file.buffer);
     res.json({ ok: true, path: rel, size: file.size });
+  }),
+);
+
+/**
+ * 图片上传到外部图床（PicList-Core）。成功返回远程 URL；未启用/失败时
+ * 回退到本地 attachments，返回 vault 相对路径（前端据此决定插入形式）。
+ */
+filesRouter.post(
+  '/upload-image',
+  upload.single('file'),
+  asyncHandler(async (req, res) => {
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ error: 'file required' });
+      return;
+    }
+    if (!file.mimetype.startsWith('image/')) {
+      res.status(400).json({ error: '仅支持图片文件' });
+      return;
+    }
+    try {
+      const { url } = await uploadImage(file.buffer, file.originalname, file.mimetype);
+      res.json({ ok: true, remote: true, url });
+    } catch (e) {
+      if (e instanceof UploadError && e.status === 400) {
+        // 未启用图床：回退到本地 attachments。
+        const s = await getSettings();
+        const resolvedDir = await vault.resolveDirCaseInsensitive(s.vault.attachmentDir || 'attachments');
+        const rel = path.posix.join(resolvedDir, file.originalname);
+        await vault.writeFileBuffer(rel, file.buffer);
+        res.json({ ok: true, remote: false, path: rel, size: file.size });
+        return;
+      }
+      throw e;
+    }
   }),
 );
 

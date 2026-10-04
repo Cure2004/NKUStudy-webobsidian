@@ -145,6 +145,16 @@ export const api = {
     if (!res.ok) throw new ApiError((await res.json().catch(() => ({}))).error ?? 'Upload failed', res.status);
     return res.json() as Promise<{ ok: true; path: string; size: number }>;
   },
+  // 上传图片到外部图床；未启用时回退本地 attachments。
+  uploadImage: async (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/files/upload-image', { method: 'POST', credentials: 'include', body: fd });
+    if (!res.ok) throw new ApiError((await res.json().catch(() => ({}))).error ?? 'Upload failed', res.status);
+    return res.json() as Promise<
+      { ok: true; remote: true; url: string } | { ok: true; remote: false; path: string; size: number }
+    >;
+  },
   rawUrl: (path: string) => `/api/files/content?path=${encodeURIComponent(path)}`,
 
   // search & links

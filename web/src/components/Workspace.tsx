@@ -260,14 +260,22 @@ export default function Workspace() {
     openContextMenu({ x: Math.round(rect.right) - 220, y: Math.round(rect.bottom) + 6, items });
   };
 
-  // Paste / drop image → upload to attachments and insert an embed.
+  // Paste / drop image → 上传到图床（或回退本地 attachments）并插入。
   const handleFiles = async (files: FileList | File[]) => {
     for (const file of Array.from(files)) {
       if (!file.type.startsWith('image/')) continue;
       try {
-        const { path } = await api.upload(file);
-        setContent(`${content}\n![[${path}]]\n`);
-        notify(t('Inserted {path}', { path }));
+        const r = await api.uploadImage(file);
+        if (r.remote) {
+          // 图床返回远程 URL → 用标准 Markdown 图片语法。
+          const alt = file.name.replace(/\.[^.]+$/, '');
+          setContent(`${content}\n![${alt}](${r.url})\n`);
+          notify(t('已上传图片：{url}', { url: r.url }));
+        } else {
+          // 回退本地 attachments → 用 Obsidian 嵌入语法。
+          setContent(`${content}\n![[${r.path}]]\n`);
+          notify(t('Inserted {path}', { path: r.path }));
+        }
       } catch (e: any) {
         notify(e.message);
       }
