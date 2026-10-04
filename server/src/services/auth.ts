@@ -90,12 +90,41 @@ export async function changePassword(current: string, next: string): Promise<voi
 
 const TOKEN_TTL = '30d';
 
+export type SessionRole = 'owner' | 'guest';
+
 export async function issueToken(): Promise<string> {
   const s = await getSettings();
   return jwt.sign({ sub: 'owner' }, s.auth.jwtSecret, {
     expiresIn: TOKEN_TTL,
     algorithm: 'HS256',
   });
+}
+
+/** 为公开编辑访客签发一个受限会话令牌（sub: 'guest'）。 */
+export async function issueGuestToken(): Promise<string> {
+  const s = await getSettings();
+  return jwt.sign({ sub: 'guest' }, s.auth.jwtSecret, {
+    expiresIn: TOKEN_TTL,
+    algorithm: 'HS256',
+  });
+}
+
+/**
+ * 校验令牌并返回角色。owner 令牌 sub='owner'；访客令牌 sub='guest'。
+ * 其它（如 share 解锁 cookie）一律视为无效。
+ */
+export async function verifyTokenRole(token: string): Promise<SessionRole | null> {
+  try {
+    const s = await getSettings();
+    const payload = jwt.verify(token, s.auth.jwtSecret, { algorithms: ['HS256'] });
+    if (typeof payload === 'object' && payload !== null) {
+      if (payload.sub === 'owner') return 'owner';
+      if (payload.sub === 'guest') return 'guest';
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -105,13 +134,7 @@ export async function issueToken(): Promise<string> {
  * `sub: 'share'`) bị tái sử dụng như một phiên owner đầy đủ.
  */
 export async function verifyToken(token: string): Promise<boolean> {
-  try {
-    const s = await getSettings();
-    const payload = jwt.verify(token, s.auth.jwtSecret, { algorithms: ['HS256'] });
-    return typeof payload === 'object' && payload !== null && payload.sub === 'owner';
-  } catch {
-    return false;
-  }
+  return (await verifyTokenRole(token)) === 'owner';
 }
 
 /** ---- API keys ----------------------------------------------------------- */

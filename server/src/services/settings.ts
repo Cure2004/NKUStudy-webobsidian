@@ -97,6 +97,15 @@ const SettingsSchema = z.object({
       field: z.string().default('file'),
     })
     .default({}),
+  // 公开编辑模式：访客免密进入，只能编辑指定目录并走 PR 流程。
+  publicEditor: z
+    .object({
+      // 是否开启公开编辑。开启后未登录访客可读写 editableRoot 下的文件。
+      enabled: z.boolean().default(false),
+      // 访客可编辑的目录（相对仓库根，如 docs/start）。默认等于内容根。
+      editableRoot: z.string().default('docs/start'),
+    })
+    .default({}),
   search: z
     .object({
       fuzzy: z.number().default(0.2),

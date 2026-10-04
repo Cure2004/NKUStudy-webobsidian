@@ -11,6 +11,7 @@ import {
   MIN_PASSWORD_LEN,
 } from '../services/auth.js';
 import { loginRateLimit } from '../middleware/ratelimit.js';
+import { getSettings } from '../services/settings.js';
 
 export const authRouter = Router();
 
@@ -36,7 +37,13 @@ authRouter.get(
   '/status',
   asyncHandler(async (_req, res) => {
     // mustChangePassword=true ⇒ still on the default 123456; the UI forces a change.
-    res.json({ passwordSet: await isPasswordSet(), mustChangePassword: !(await hasCustomPassword()) });
+    // publicEditor=true ⇒ 访客免密进入编辑器（只能编辑指定目录并走 PR 投稿）。
+    const s = await getSettings();
+    res.json({
+      passwordSet: await isPasswordSet(),
+      mustChangePassword: !(await hasCustomPassword()),
+      publicEditor: s.publicEditor.enabled,
+    });
   }),
 );
 
@@ -104,7 +111,16 @@ authRouter.post('/logout', (_req, res) => {
 authRouter.get(
   '/me',
   requireAuth,
-  asyncHandler(async (_req, res) => {
-    res.json({ authenticated: true, mustChangePassword: !(await hasCustomPassword()) });
+  asyncHandler(async (req, res) => {
+    // role: 'owner' = 已登录管理员；'guest' = 公开模式访客（免密或访客令牌）。
+    const role = req.sessionRole ?? 'owner';
+    const s = await getSettings();
+    res.json({
+      authenticated: true,
+      role,
+      publicEditor: s.publicEditor.enabled,
+      // 访客不强制改密码（那是 owner 的账户安全流程）。
+      mustChangePassword: role === 'owner' ? !(await hasCustomPassword()) : false,
+    });
   }),
 );
