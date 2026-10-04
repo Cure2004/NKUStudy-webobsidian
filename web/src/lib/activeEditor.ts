@@ -1,4 +1,4 @@
-import type { EditorView } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import { undo, redo, indentMore, indentLess } from '@codemirror/commands';
 import { openSearchPanel } from '@codemirror/search';
 import { toggleInline, toggleChecklist, insertLink } from './editorCommands';
@@ -72,6 +72,20 @@ export function fmtRedo() {
 export function editorFind(): boolean {
   if (!active) return false;
   openSearchPanel(active);
+  return true;
+}
+
+/** 把编辑器滚动到指定行（0 基）并把光标放到该行开头。 */
+export function gotoLine(line: number): boolean {
+  const v = active;
+  if (!v) return false;
+  const n = Math.max(1, Math.min(v.state.doc.lines, line + 1));
+  const pos = v.state.doc.line(n).from;
+  v.dispatch({
+    selection: { anchor: pos },
+    effects: EditorView.scrollIntoView(pos, { y: 'start', yMargin: 40 }),
+  });
+  v.focus();
   return true;
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api, type NoteMatches } from '../lib/api';
 import { outline } from '../lib/markdown';
+import { gotoLine } from '../lib/activeEditor';
 import { t } from '../lib/i18n';
 import TagsPanel from './TagsPanel';
 import Icon from './Icon';
@@ -218,6 +219,12 @@ function OutgoingPanel() {
 function OutlinePanel() {
   const content = useStore((s) => s.content);
   const heads = outline(content);
+  const onClick = (line: number) => {
+    if (!gotoLine(line)) {
+      // 编辑器不在前台（如阅读/其他视图）时给个提示。
+      useStore.getState().notify(t('请在编辑器中打开笔记以跳转'));
+    }
+  };
   return (
     <>
       <div className="nav-header">
@@ -226,7 +233,13 @@ function OutlinePanel() {
       <div className="sidebar-body">
         {heads.length === 0 && <div className="panel-item">{t('No headings')}</div>}
         {heads.map((h, i) => (
-          <div key={i} className="outline-item" style={{ paddingLeft: 10 + (h.level - 1) * 12 }}>
+          <div
+            key={i}
+            className="outline-item"
+            style={{ paddingLeft: 10 + (h.level - 1) * 12, cursor: 'pointer' }}
+            title={h.text}
+            onClick={() => onClick(h.line)}
+          >
             {h.text}
           </div>
         ))}

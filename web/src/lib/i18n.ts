@@ -179,6 +179,7 @@ const zh: Record<string, string> = {
   'Unresolved': '未解析',
   'Not created yet — click to create': '尚未创建 — 点击即可创建',
   'No headings': '没有标题',
+  '请在编辑器中打开笔记以跳转': '请在编辑器中打开笔记以跳转',
 
   // ---- 搜索 ----
   'Search   (try tag:idea, path:notes)': '搜索（试试 tag:idea、path:notes）',
