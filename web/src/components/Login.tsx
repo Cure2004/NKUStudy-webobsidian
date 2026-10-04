@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useStore } from '../lib/store';
+import { t } from '../lib/i18n';
 import Icon from './Icon';
 
 export default function Login({ onAuthed }: { onAuthed: () => void }) {
@@ -19,7 +20,7 @@ export default function Login({ onAuthed }: { onAuthed: () => void }) {
     e.preventDefault();
     setErr('');
     if (needSetup && password !== confirm) {
-      setErr('Passwords do not match');
+      setErr(t('Passwords do not match'));
       return;
     }
     setBusy(true);
@@ -33,7 +34,7 @@ export default function Login({ onAuthed }: { onAuthed: () => void }) {
       }
       onAuthed();
     } catch (e: any) {
-      setErr(e.message ?? 'Failed');
+      setErr(e.message ?? t('Failed'));
     } finally {
       setBusy(false);
     }
@@ -45,13 +46,13 @@ export default function Login({ onAuthed }: { onAuthed: () => void }) {
         <div className="logo">
           <Icon name="gem" size={40} />
         </div>
-        <h1>WebObsidian</h1>
-        <p>{needSetup ? 'Set a master password to secure your vault' : 'Enter your password to unlock'}</p>
+        <h1>{t('WebObsidian')}</h1>
+        <p>{needSetup ? t('Set a master password to secure your vault') : t('Enter your password to unlock')}</p>
         <div className="err">{err}</div>
         <input
           className="text-input"
           type="password"
-          placeholder="Password"
+          placeholder={t('Password')}
           autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -60,13 +61,13 @@ export default function Login({ onAuthed }: { onAuthed: () => void }) {
           <input
             className="text-input"
             type="password"
-            placeholder="Confirm password"
+            placeholder={t('Confirm password')}
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
           />
         )}
         <button className="btn" type="submit" disabled={busy}>
-          {needSetup ? 'Create & Unlock' : 'Unlock'}
+          {needSetup ? t('Create & Unlock') : t('Unlock')}
         </button>
       </form>
     </div>

@@ -41,6 +41,7 @@ import {
 import { renderMarkdown } from '../lib/markdown';
 import { setActiveEditor } from '../lib/activeEditor';
 import { api } from '../lib/api';
+import { t } from '../lib/i18n';
 
 const titleOf = (path: string | null) =>
   path ? (path.split('/').pop() ?? path).replace(/\.(md|markdown)$/i, '') : '';
@@ -188,46 +189,46 @@ export default function Editor() {
       y: e.clientY,
       items: [
         {
-          label: 'Format', icon: 'pencil', submenu: [
-            { label: 'Bold', onClick: () => wrap('**') },
-            { label: 'Italic', onClick: () => wrap('*') },
-            { label: 'Strikethrough', onClick: () => wrap('~~') },
-            { label: 'Highlight', onClick: () => wrap('==') },
-            { label: 'Inline code', onClick: () => wrap('`') },
+          label: t('Format'), icon: 'pencil', submenu: [
+            { label: t('Bold'), onClick: () => wrap('**') },
+            { label: t('Italic'), onClick: () => wrap('*') },
+            { label: t('Strikethrough'), onClick: () => wrap('~~') },
+            { label: t('Highlight'), onClick: () => wrap('==') },
+            { label: t('Inline code'), onClick: () => wrap('`') },
           ],
         },
         {
-          label: 'Paragraph', icon: 'file-text', submenu: [
-            { label: 'Heading 1', onClick: () => prefixLines('# ') },
-            { label: 'Heading 2', onClick: () => prefixLines('## ') },
-            { label: 'Heading 3', onClick: () => prefixLines('### ') },
-            { label: 'Bullet list', onClick: () => prefixLines('- ') },
-            { label: 'Numbered list', onClick: () => prefixLines('1. ') },
-            { label: 'Task list', onClick: () => prefixLines('- [ ] ') },
-            { label: 'Quote', onClick: () => prefixLines('> ') },
-            { label: 'Code block', onClick: () => wrap('```\n', '\n```') },
+          label: t('Paragraph'), icon: 'file-text', submenu: [
+            { label: t('Heading 1'), onClick: () => prefixLines('# ') },
+            { label: t('Heading 2'), onClick: () => prefixLines('## ') },
+            { label: t('Heading 3'), onClick: () => prefixLines('### ') },
+            { label: t('Bullet list'), onClick: () => prefixLines('- ') },
+            { label: t('Numbered list'), onClick: () => prefixLines('1. ') },
+            { label: t('Task list'), onClick: () => prefixLines('- [ ] ') },
+            { label: t('Quote'), onClick: () => prefixLines('> ') },
+            { label: t('Code block'), onClick: () => wrap('```\n', '\n```') },
           ],
         },
         {
-          label: 'Insert', icon: 'plus', submenu: [
-            { label: 'Internal link', onClick: () => insert('[[]]', 2) },
-            { label: 'External link', onClick: () => wrap('[', '](url)') },
-            { label: 'Embed file', onClick: () => insert('![[]]', 3) },
-            { label: 'Callout', onClick: () => insert('> [!note] Title\n> ', 18) },
-            { label: 'Table', onClick: () => insert('\n| Column 1 | Column 2 |\n| --- | --- |\n|  |  |\n') },
-            { label: 'Horizontal rule', onClick: () => insert('\n---\n') },
-            { label: 'Tag', onClick: () => insert('#') },
+          label: t('Insert'), icon: 'plus', submenu: [
+            { label: t('Internal link'), onClick: () => insert('[[]]', 2) },
+            { label: t('External link'), onClick: () => wrap('[', '](url)') },
+            { label: t('Embed file'), onClick: () => insert('![[]]', 3) },
+            { label: t('Callout'), onClick: () => insert('> [!note] Title\n> ', 18) },
+            { label: t('Table'), onClick: () => insert('\n| Column 1 | Column 2 |\n| --- | --- |\n|  |  |\n') },
+            { label: t('Horizontal rule'), onClick: () => insert('\n---\n') },
+            { label: t('Tag'), onClick: () => insert('#') },
           ],
         },
         { label: '', separator: true },
-        { label: 'Cut', onClick: cut },
-        { label: 'Copy', onClick: copy },
-        { label: 'Paste', onClick: paste },
-        { label: 'Select all', onClick: selectAll },
+        { label: t('Cut'), onClick: cut },
+        { label: t('Copy'), onClick: copy },
+        { label: t('Paste'), onClick: paste },
+        { label: t('Select all'), onClick: selectAll },
         ...(sel
           ? [
               { label: '', separator: true },
-              { label: `Search for “${sel.slice(0, 24)}”`, icon: 'search', onClick: () => setLeftPanel('search') },
+              { label: t('Search for “{sel}”', { sel: sel.slice(0, 24) }), icon: 'search', onClick: () => setLeftPanel('search') },
             ]
           : []),
       ],

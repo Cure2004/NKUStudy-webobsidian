@@ -1,6 +1,7 @@
 import { useStore } from '../lib/store';
 import { findNode } from '../lib/tree';
 import { api, type TreeNode } from '../lib/api';
+import { t } from '../lib/i18n';
 import Icon from './Icon';
 
 function entryIcon(n: TreeNode): string {
@@ -36,15 +37,15 @@ export default function FolderView({ path }: { path: string }) {
       <div className="preview-inner folder-view">
         <div className="folder-view-head">
           <h1><Icon name="folder" size={26} /> {node?.name ?? path}</h1>
-          <button className="tool-btn" title="New note in this folder" onClick={() => newNote(path)}>
+          <button className="tool-btn" title={t('New note in this folder')} onClick={() => newNote(path)}>
             <Icon name="plus" size={18} />
           </button>
         </div>
         <div className="folder-view-meta">
-          {folders.length} folder{folders.length === 1 ? '' : 's'} · {files.length} file{files.length === 1 ? '' : 's'}
+          {t('{folders} folder(s) · {files} file(s)', { folders: folders.length, files: files.length })}
         </div>
         {ordered.length === 0 ? (
-          <p className="folder-empty">This folder is empty.</p>
+          <p className="folder-empty">{t('This folder is empty.')}</p>
         ) : (
           <div className="folder-list">
             {ordered.map((c) => (

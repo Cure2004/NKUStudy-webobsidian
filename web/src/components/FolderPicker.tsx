@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api, type TreeNode } from '../lib/api';
 import { pruneDescendants } from '../lib/tree';
+import { t } from '../lib/i18n';
 
 /** Collect every folder path in the vault, in tree order. */
 function collectFolders(node: TreeNode | null): string[] {
@@ -94,15 +95,15 @@ export default function FolderPicker() {
         if (activePath === src) reopen = to;
         moved++;
       } catch (e: any) {
-        notify(e?.message ?? 'Move failed');
+        notify(e?.message ?? t('Move failed'));
       }
     }
     await loadTree();
     useStore.getState().setSelected([]);
     if (reopen) await openFile(reopen);
     if (moved) {
-      const dest = folder || 'vault root';
-      notify(moved > 1 ? `Moved ${moved} items to ${dest}` : `Moved to ${dest}`);
+      const dest = folder || t('vault root');
+      notify(moved > 1 ? t('Moved {n} items to {dest}', { n: moved, dest }) : t('Moved to {dest}', { dest }));
     }
   };
 
@@ -127,7 +128,7 @@ export default function FolderPicker() {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <input
           className="palette-input"
-          placeholder={froms.length > 1 ? `Move ${froms.length} items to which folder?` : 'Type a folder'}
+          placeholder={froms.length > 1 ? t('Move {n} items to which folder?', { n: froms.length }) : t('Type a folder')}
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -150,17 +151,17 @@ export default function FolderPicker() {
               onMouseEnter={() => setSel(-1)}
               onClick={() => move(typed)}
             >
-              <span>Create “{typed}”</span>
+              <span>{t('Create “{typed}”', { typed })}</span>
               <span className="kbd">⇧↵</span>
             </div>
           )}
-          {matches.length === 0 && !canCreate && <div className="palette-item">No folders</div>}
+          {matches.length === 0 && !canCreate && <div className="palette-item">{t('No folders')}</div>}
         </div>
         <div className="palette-footer">
-          <span><span className="kbd">↑↓</span> to navigate</span>
-          <span><span className="kbd">↵</span> to move</span>
-          <span><span className="kbd">⇧↵</span> to create</span>
-          <span><span className="kbd">esc</span> to dismiss</span>
+          <span><span className="kbd">↑↓</span> {t('to navigate')}</span>
+          <span><span className="kbd">↵</span> {t('to move')}</span>
+          <span><span className="kbd">⇧↵</span> {t('to create')}</span>
+          <span><span className="kbd">esc</span> {t('to dismiss')}</span>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { useStore } from '../lib/store';
+import { t } from '../lib/i18n';
 import Icon from './Icon';
 
 const MIN_LEN = 6;
@@ -22,15 +23,15 @@ export default function ForceChangePassword() {
     e.preventDefault();
     setErr('');
     if (next.length < MIN_LEN) {
-      setErr(`Password must be at least ${MIN_LEN} characters`);
+      setErr(t('Password must be at least {n} characters', { n: MIN_LEN }));
       return;
     }
     if (next === DEFAULT_PASSWORD) {
-      setErr('Choose a password different from the default');
+      setErr(t('Choose a password different from the default'));
       return;
     }
     if (next !== confirm) {
-      setErr('Passwords do not match');
+      setErr(t('Passwords do not match'));
       return;
     }
     setBusy(true);
@@ -39,7 +40,7 @@ export default function ForceChangePassword() {
       await api.changePassword(DEFAULT_PASSWORD, next);
       setMustChangePassword(false);
     } catch (e: any) {
-      setErr(e.message ?? 'Failed to change password');
+      setErr(e.message ?? t('Failed to change password'));
     } finally {
       setBusy(false);
     }
@@ -51,16 +52,15 @@ export default function ForceChangePassword() {
         <div className="logo">
           <Icon name="gem" size={40} />
         </div>
-        <h1>Set a new password</h1>
+        <h1>{t('Set a new password')}</h1>
         <p>
-          You are signed in with the default password (<code>123456</code>). Choose a
-          new password to secure your vault before continuing.
+          {t('You are signed in with the default password (123456). Choose a new password to secure your vault before continuing.')}
         </p>
         <div className="err">{err}</div>
         <input
           className="text-input"
           type="password"
-          placeholder="New password"
+          placeholder={t('New password')}
           autoFocus
           autoComplete="new-password"
           value={next}
@@ -69,13 +69,13 @@ export default function ForceChangePassword() {
         <input
           className="text-input"
           type="password"
-          placeholder="Confirm new password"
+          placeholder={t('Confirm new password')}
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Saving…' : 'Set password & continue'}
+          {busy ? t('Saving…') : t('Set password & continue')}
         </button>
       </form>
     </div>

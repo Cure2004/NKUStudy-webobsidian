@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Icon from './Icon';
 import type { IconName } from './Icon';
+import { t } from '../lib/i18n';
 import {
   fmtInline,
   fmtChecklist,
@@ -38,7 +39,7 @@ function Buttons({ size }: { size: number }) {
       {BUTTONS.map((b) => (
         <button
           key={b.title}
-          title={b.title}
+          title={t(b.title)}
           // Keep the editor focused / the keyboard open when a button is pressed.
           onPointerDown={(e) => e.preventDefault()}
           onClick={b.run}

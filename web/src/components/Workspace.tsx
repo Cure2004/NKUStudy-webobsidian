@@ -6,6 +6,7 @@ import GraphView from './GraphView';
 import CanvasView from './CanvasView';
 import FolderView from './FolderView';
 import { isFolderPath } from '../lib/tree';
+import { t } from '../lib/i18n';
 import Icon from './Icon';
 import StatusBar from './StatusBar';
 import FormatToolbar from './FormatToolbar';
@@ -107,7 +108,7 @@ export default function Workspace() {
     window.setTimeout(() => {
       const v = getActiveEditor();
       if (v) triggerAddProperty(v);
-      else notify('Open the note to add a property');
+      else notify(t('Open the note to add a property'));
     }, 80);
   };
 
@@ -132,25 +133,25 @@ export default function Workspace() {
     const baseName = path.split('/').pop() ?? path;
     const closeOthers = () => tabs.filter((t) => t.path !== path).forEach((t) => closeTab(t.path));
     const tabItems: ContextMenuItem[] = [
-      { label: 'Close tab', icon: 'x', onClick: () => closeTab(path) },
-      { label: 'Close other tabs', onClick: closeOthers },
+      { label: t('Close tab'), icon: 'x', onClick: () => closeTab(path) },
+      { label: t('Close other tabs'), onClick: closeOthers },
     ];
     let items: ContextMenuItem[];
     if (path === GRAPH_PATH) {
       items = [
         // GraphView owns the Pixi renderer — it listens for this event and
         // extracts the stage to a PNG (a plain canvas read would be blank).
-        { label: 'Copy screenshot', icon: 'camera', onClick: () => window.dispatchEvent(new CustomEvent('wo-graph-screenshot')) },
+        { label: t('Copy screenshot'), icon: 'camera', onClick: () => window.dispatchEvent(new CustomEvent('wo-graph-screenshot')) },
         { label: '', separator: true },
         ...tabItems,
       ];
     } else {
       const sep: ContextMenuItem = { label: '', separator: true };
       const renameItem: ContextMenuItem = {
-        label: 'Rename…',
+        label: t('Rename…'),
         icon: 'pencil',
         onClick: async () => {
-          const to = prompt('Rename / move to (vault-relative path):', path);
+          const to = prompt(t('Rename / move to (vault-relative path):'), path);
           if (to && to !== path) {
             await api.rename(path, to);
             closeTab(path);
@@ -160,12 +161,12 @@ export default function Workspace() {
         },
       };
       const moveItem: ContextMenuItem = {
-        label: 'Move file to…',
+        label: t('Move file to…'),
         icon: 'folder',
         onClick: () => setMovePath(path),
       };
       const copyItem: ContextMenuItem = {
-        label: 'Make a copy',
+        label: t('Make a copy'),
         icon: 'file-plus',
         onClick: async () => {
           const r = await api.read(path).catch(() => null);
@@ -175,82 +176,82 @@ export default function Workspace() {
           const copyPath = dot > 0 ? `${path.slice(0, dot)} copy${path.slice(dot)}` : `${path} copy`;
           await api.write(copyPath, body);
           await loadTree();
-          notify('Made a copy');
+          notify(t('Made a copy'));
         },
       };
       items = [
-        ...(isMd ? [{ label: 'Backlinks in document', icon: 'link', onClick: () => setRightPanel('backlinks') }, sep] : []),
+        ...(isMd ? [{ label: t('Backlinks in document'), icon: 'link', onClick: () => setRightPanel('backlinks') }, sep] : []),
         ...(canSplit
           ? [
-              { label: 'Split right', icon: 'columns', onClick: () => openToSide(path, 'right') },
-              { label: 'Split down', icon: 'rows', onClick: () => openToSide(path, 'down') },
+              { label: t('Split right'), icon: 'columns', onClick: () => openToSide(path, 'right') },
+              { label: t('Split down'), icon: 'rows', onClick: () => openToSide(path, 'down') },
             ]
           : []),
-        { label: 'Open in new window', icon: 'arrow-up-right', onClick: () => window.open(pathToUrl(path), '_blank', 'noopener') },
+        { label: t('Open in new window'), icon: 'arrow-up-right', onClick: () => window.open(pathToUrl(path), '_blank', 'noopener') },
         sep,
         renameItem,
         moveItem,
         copyItem,
-        { label: bookmarks.includes(path) ? 'Remove bookmark' : 'Bookmark', icon: 'bookmark', onClick: () => toggleBookmark(path) },
-        ...(isMd ? [{ label: 'Add file property', icon: 'plus', onClick: addFileProperty }] : []),
-        ...(isMd ? [{ label: 'Export to PDF…', icon: 'file-pdf', onClick: exportToPdf }] : []),
+        { label: bookmarks.includes(path) ? t('Remove bookmark') : t('Bookmark'), icon: 'bookmark', onClick: () => toggleBookmark(path) },
+        ...(isMd ? [{ label: t('Add file property'), icon: 'plus', onClick: addFileProperty }] : []),
+        ...(isMd ? [{ label: t('Export to PDF…'), icon: 'file-pdf', onClick: exportToPdf }] : []),
         ...(canSplit
           ? [
               sep,
               {
-                label: 'Find…',
+                label: t('Find…'),
                 icon: 'search',
                 onClick: () => {
-                  if (!editorFind()) notify('Open the note to search inside it');
+                  if (!editorFind()) notify(t('Open the note to search inside it'));
                 },
               },
             ]
           : []),
         sep,
         {
-          label: 'Copy URL path',
+          label: t('Copy URL path'),
           onClick: () => {
             navigator.clipboard?.writeText(`${location.origin}${pathToUrl(path)}`).catch(() => {});
-            notify('URL copied');
+            notify(t('URL copied'));
           },
         },
-        { label: 'Open version history', icon: 'clock', onClick: () => setVersionHistory(path) },
+        { label: t('Open version history'), icon: 'clock', onClick: () => setVersionHistory(path) },
         ...(isMd
           ? [
               {
-                label: 'Open linked view',
+                label: t('Open linked view'),
                 icon: 'arrow-up-right',
                 submenu: [
-                  { label: 'Backlinks', icon: 'link', onClick: () => setRightPanel('backlinks') },
-                  { label: 'Outgoing links', icon: 'arrow-up-right', onClick: () => setRightPanel('outgoing') },
-                  { label: 'Outline', icon: 'list', onClick: () => setRightPanel('outline') },
+                  { label: t('Backlinks'), icon: 'link', onClick: () => setRightPanel('backlinks') },
+                  { label: t('Outgoing links'), icon: 'arrow-up-right', onClick: () => setRightPanel('outgoing') },
+                  { label: t('Outline'), icon: 'list', onClick: () => setRightPanel('outline') },
                 ],
               },
             ]
           : []),
         sep,
         {
-          label: 'Reveal file in navigation',
+          label: t('Reveal file in navigation'),
           icon: 'folder',
           onClick: () => {
             revealInTree(path);
             if (isMobile) setMobileDrawer('left');
           },
         },
-        ...(isShareable ? [{ label: 'Share…', icon: 'globe', onClick: () => setShareDialog(path) }] : []),
+        ...(isShareable ? [{ label: t('Share…'), icon: 'globe', onClick: () => setShareDialog(path) }] : []),
         sep,
         ...tabItems,
         sep,
         {
-          label: 'Delete',
+          label: t('Delete'),
           danger: true,
           icon: 'trash',
           onClick: async () => {
-            if (confirm(`Delete "${baseName}"?`)) {
+            if (confirm(t('Delete "{name}"?', { name: baseName }))) {
               const r = await api.remove(path);
               closeTab(path);
               await loadTree();
-              notify(r.deleted ? 'Deleted permanently' : 'Moved to trash');
+              notify(r.deleted ? t('Deleted permanently') : t('Moved to trash'));
             }
           },
         },
@@ -266,7 +267,7 @@ export default function Workspace() {
       try {
         const { path } = await api.upload(file);
         setContent(`${content}\n![[${path}]]\n`);
-        notify(`Inserted ${path}`);
+        notify(t('Inserted {path}', { path }));
       } catch (e: any) {
         notify(e.message);
       }
@@ -291,7 +292,7 @@ export default function Workspace() {
       <div className="tab-bar">
         <span
           className="tab-new tab-ctl"
-          title={isMobile ? 'Open menu' : 'Toggle left sidebar (⌘\\)'}
+          title={isMobile ? t('Open menu') : t('Toggle left sidebar (⌘\\)')}
           onClick={() => (isMobile ? setMobileDrawer('left') : toggleLeft())}
         >
           <Icon name={isMobile ? 'menu' : 'panel-left'} size={isMobile ? 20 : 16} />
@@ -327,7 +328,7 @@ export default function Workspace() {
         </div>
         <span
           className="tab-new tab-ctl"
-          title="New note (⌘N)"
+          title={t('New note (⌘N)')}
           onClick={() => newNote()}
         >
           <Icon name="plus" size={16} />
@@ -335,7 +336,7 @@ export default function Workspace() {
         <span className="grow" style={{ flex: 1 }} />
         <span
           className="tab-new tab-ctl"
-          title="Toggle right sidebar"
+          title={t('Toggle right sidebar')}
           onClick={() => (isMobile ? setMobileDrawer('right') : toggleRight())}
         >
           <Icon name="panel-right" size={isMobile ? 20 : 16} />
@@ -344,16 +345,16 @@ export default function Workspace() {
 
       {activePath && (
         <div className="view-header">
-          <button className="tool-btn" title="Back" disabled={!canGoBack} onClick={goBack}>
+          <button className="tool-btn" title={t('Back')} disabled={!canGoBack} onClick={goBack}>
             <Icon name="arrow-left" size={18} />
           </button>
-          <button className="tool-btn" title="Forward" disabled={!canGoForward} onClick={goForward}>
+          <button className="tool-btn" title={t('Forward')} disabled={!canGoForward} onClick={goForward}>
             <Icon name="arrow-right" size={18} />
           </button>
           <span className="grow" />
           <span className="crumbs">
             {activePath === GRAPH_PATH
-              ? 'Graph view'
+              ? t('Graph view')
               : activePath.split('/').map((seg, i) => (
                   <span key={i}>
                     {i > 0 && <span className="sep">/</span>}
@@ -364,29 +365,29 @@ export default function Workspace() {
           <span className="grow" />
           {isMd && (
             <>
-              <button className={`tool-btn ${bookmarks.includes(activePath) ? 'active' : ''}`} title="Bookmark" onClick={() => toggleBookmark(activePath)}>
+              <button className={`tool-btn ${bookmarks.includes(activePath) ? 'active' : ''}`} title={t('Bookmark')} onClick={() => toggleBookmark(activePath)}>
                 <Icon name="bookmark" size={16} />
               </button>
               {!isMobile && (
-                <button className="tool-btn" title="Open to the right" onClick={() => openToSide(activePath)}>
+                <button className="tool-btn" title={t('Open to the right')} onClick={() => openToSide(activePath)}>
                   <Icon name="columns" size={16} />
                 </button>
               )}
               <div className="seg">
-                <button className={viewMode === 'source' ? 'active' : ''} onClick={() => setViewMode('source')} title="Source">
-                  Source
+                <button className={viewMode === 'source' ? 'active' : ''} onClick={() => setViewMode('source')} title={t('Source')}>
+                  {t('Source')}
                 </button>
-                <button className={viewMode === 'live' ? 'active' : ''} onClick={() => setViewMode('live')} title="Live preview">
-                  Live
+                <button className={viewMode === 'live' ? 'active' : ''} onClick={() => setViewMode('live')} title={t('Live preview')}>
+                  {t('Live')}
                 </button>
-                <button className={viewMode === 'reading' ? 'active' : ''} onClick={() => setViewMode('reading')} title="Reading">
-                  Reading
+                <button className={viewMode === 'reading' ? 'active' : ''} onClick={() => setViewMode('reading')} title={t('Reading')}>
+                  {t('Reading')}
                 </button>
               </div>
             </>
           )}
           {!activeIsFolder && (
-            <button className="tool-btn" title="More options" onClick={openMoreMenu}>
+            <button className="tool-btn" title={t('More options')} onClick={openMoreMenu}>
               <Icon name="more-horizontal" size={18} />
             </button>
           )}
@@ -404,7 +405,7 @@ export default function Workspace() {
               <div className="big">
                 <Icon name="file-text" size={48} />
               </div>
-              <p>No file is open — pick a note, or press ⌘O</p>
+              <p>{t('No file is open — pick a note, or press ⌘O')}</p>
             </div>
           </div>
         )}
@@ -428,7 +429,7 @@ export default function Workspace() {
             <div className="split-head">
               <span className="crumbs">{splitPath}</span>
               <span className="grow" />
-              <button className="tool-btn" onClick={closeSplit} title="Close split">
+              <button className="tool-btn" onClick={closeSplit} title={t('Close split')}>
                 <Icon name="x" size={16} />
               </button>
             </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useStore } from '../lib/store';
+import { t } from '../lib/i18n';
 
 export default function TagsPanel() {
   const [tags, setTags] = useState<{ tag: string; count: number }[]>([]);
@@ -12,15 +13,15 @@ export default function TagsPanel() {
 
   return (
     <div style={{ padding: 8 }}>
-      {tags.length === 0 && <div style={{ color: 'var(--text-faint)', padding: 8 }}>No tags found</div>}
-      {tags.map((t) => (
+      {tags.length === 0 && <div style={{ color: 'var(--text-faint)', padding: 8 }}>{t('No tags found')}</div>}
+      {tags.map((tag) => (
         <span
-          key={t.tag}
+          key={tag.tag}
           className="tag-pill"
-          title={`Search #${t.tag}`}
-          onClick={() => searchFor(`tag:${t.tag}`)}
+          title={t('Search #{tag}', { tag: tag.tag })}
+          onClick={() => searchFor(`tag:${tag.tag}`)}
         >
-          #{t.tag} <span className="count">{t.count}</span>
+          #{tag.tag} <span className="count">{tag.count}</span>
         </span>
       ))}
     </div>

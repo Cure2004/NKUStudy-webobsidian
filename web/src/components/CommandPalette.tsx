@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api, type TreeNode } from '../lib/api';
+import { t } from '../lib/i18n';
 
 interface Cmd {
   id: string;
@@ -48,27 +49,27 @@ export default function CommandPalette() {
 
   const commands: Cmd[] = useMemo(
     () => [
-      { id: 'new', title: 'New note', hint: '⌘N', run: () => newNote() },
-      { id: 'new-canvas', title: 'New canvas', run: () => newCanvas() },
-      { id: 'daily', title: 'Open today’s daily note', run: () => openDailyNote() },
-      { id: 'save', title: 'Save current file', hint: '⌘S', run: () => save() },
-      { id: 'bookmark', title: 'Bookmark current file', run: () => activePath && toggleBookmark(activePath) },
-      { id: 'split', title: 'Open current file to the right', run: () => activePath && openToSide(activePath) },
-      { id: 'search', title: 'Open search', run: () => setLeftPanel('search') },
-      { id: 'bookmarks', title: 'Open bookmarks & recent', run: () => setLeftPanel('bookmarks') },
-      { id: 'graph', title: 'Open graph view', run: () => setGraph(true) },
-      { id: 'settings', title: 'Open settings', run: () => setSettings(true) },
-      { id: 'trash', title: 'Open trash', run: () => setTrash(true) },
-      { id: 'reading', title: 'View: Reading mode', run: () => setViewMode('reading') },
-      { id: 'live', title: 'View: Live edit', run: () => setViewMode('live') },
-      { id: 'source', title: 'View: Source', run: () => setViewMode('source') },
-      { id: 'reindex', title: 'Rebuild search index', run: async () => {
-          notify('Rebuilding search index…', 0);
+      { id: 'new', title: t('New note'), hint: '⌘N', run: () => newNote() },
+      { id: 'new-canvas', title: t('New canvas'), run: () => newCanvas() },
+      { id: 'daily', title: t('Open today’s daily note'), run: () => openDailyNote() },
+      { id: 'save', title: t('Save current file'), hint: '⌘S', run: () => save() },
+      { id: 'bookmark', title: t('Bookmark current file'), run: () => activePath && toggleBookmark(activePath) },
+      { id: 'split', title: t('Open current file to the right'), run: () => activePath && openToSide(activePath) },
+      { id: 'search', title: t('Open search'), run: () => setLeftPanel('search') },
+      { id: 'bookmarks', title: t('Open bookmarks & recent'), run: () => setLeftPanel('bookmarks') },
+      { id: 'graph', title: t('Open graph view'), run: () => setGraph(true) },
+      { id: 'settings', title: t('Open settings'), run: () => setSettings(true) },
+      { id: 'trash', title: t('Open trash'), run: () => setTrash(true) },
+      { id: 'reading', title: t('View: Reading mode'), run: () => setViewMode('reading') },
+      { id: 'live', title: t('View: Live edit'), run: () => setViewMode('live') },
+      { id: 'source', title: t('View: Source'), run: () => setViewMode('source') },
+      { id: 'reindex', title: t('Rebuild search index'), run: async () => {
+          notify(t('Rebuilding search index…'), 0);
           try {
             await api.reindex();
-            notify('Search index rebuilt');
+            notify(t('Search index rebuilt'));
           } catch {
-            notify('Failed to rebuild search index');
+            notify(t('Failed to rebuild search index'));
           }
         } },
     ],
@@ -114,7 +115,7 @@ export default function CommandPalette() {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <input
           className="palette-input"
-          placeholder={mode === 'commands' ? 'Run a command…' : 'Search files… (prefix > for commands)'}
+          placeholder={mode === 'commands' ? t('Run a command…') : t('Search files… (prefix > for commands)')}
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -135,7 +136,7 @@ export default function CommandPalette() {
               {it.hint && <span className="kbd">{it.hint}</span>}
             </div>
           ))}
-          {items.length === 0 && <div className="palette-item">No matches</div>}
+          {items.length === 0 && <div className="palette-item">{t('No matches')}</div>}
         </div>
       </div>
     </div>

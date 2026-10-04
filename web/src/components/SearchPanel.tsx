@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api, type SearchHit, type MatchContext, type NoteMatches } from '../lib/api';
 import { useStore } from '../lib/store';
+import { t } from '../lib/i18n';
 import Icon from './Icon';
 
 type SortMode = 'relevance' | 'name-asc' | 'name-desc' | 'path-asc';
@@ -168,26 +169,26 @@ export default function SearchPanel() {
           <Icon name="search" size={15} className="search-lead" />
           <input
             className="search-input has-lead"
-            placeholder="Search   (try tag:idea, path:notes)"
+            placeholder={t('Search   (try tag:idea, path:notes)')}
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
           <button
             className={`search-icon-btn ${matchCase ? 'active' : ''}`}
-            title="Match case"
+            title={t('Match case')}
             onClick={() => setMatchCase((v) => !v)}
           >
             Aa
           </button>
           {q && (
-            <button className="search-icon-btn" title="Clear" onClick={() => setQ('')}>
+            <button className="search-icon-btn" title={t('Clear')} onClick={() => setQ('')}>
               <Icon name="x" size={15} />
             </button>
           )}
           <button
             className={`search-icon-btn ${showOptions ? 'active' : ''}`}
-            title="Search options"
+            title={t('Search options')}
             onClick={() => setShowOptions((v) => !v)}
           >
             <Icon name="sliders" size={15} />
@@ -197,11 +198,11 @@ export default function SearchPanel() {
         {showOptions && (
           <div className="search-options">
             <label className="search-opt">
-              <span>Collapse results</span>
+              <span>{t('Collapse results')}</span>
               <input type="checkbox" checked={collapsed} onChange={(e) => setCollapsed(e.target.checked)} />
             </label>
             <label className="search-opt">
-              <span>Show more context</span>
+              <span>{t('Show more context')}</span>
               <input type="checkbox" checked={moreContext} onChange={(e) => setMoreContext(e.target.checked)} />
             </label>
           </div>
@@ -210,13 +211,13 @@ export default function SearchPanel() {
         {q && (
           <div className="search-meta">
             <span>
-              {shown.length} note{shown.length === 1 ? '' : 's'}
-              {totalMatches > 0 && ` · ${totalMatches}${visible < shown.length ? '+' : ''} matches`}
+              {t('{n} notes', { n: shown.length })}
+              {totalMatches > 0 && ` · ${t('{n} matches', { n: `${totalMatches}${visible < shown.length ? '+' : ''}` })}`}
             </span>
             <span className="grow" />
             <div className="search-sort">
               <button className="search-sort-btn" onClick={() => setSortOpen((v) => !v)}>
-                {SORT_LABELS[sort]}
+                {t(SORT_LABELS[sort])}
                 <Icon name="chevron-down" size={13} />
               </button>
               {sortOpen && (
@@ -233,7 +234,7 @@ export default function SearchPanel() {
                         }}
                       >
                         <Icon name="check" size={14} style={{ opacity: sort === m ? 1 : 0 }} />
-                        {SORT_LABELS[m]}
+                        {t(SORT_LABELS[m])}
                       </button>
                     ))}
                   </div>
@@ -295,7 +296,7 @@ export default function SearchPanel() {
         })}
         <div ref={sentinel} />
         {visible < shown.length && (
-          <div className="search-more">Showing {visible} of {shown.length}…</div>
+          <div className="search-more">{t('Showing {visible} of {total}…', { visible, total: shown.length })}</div>
         )}
       </div>
     </div>

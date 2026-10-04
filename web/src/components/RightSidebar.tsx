@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api, type NoteMatches } from '../lib/api';
 import { outline } from '../lib/markdown';
+import { t } from '../lib/i18n';
 import TagsPanel from './TagsPanel';
 import Icon from './Icon';
 
@@ -92,28 +93,28 @@ function BacklinksPanel() {
     <>
       <div className="nav-header">
         <span className="nav-title">
-          {activePath && MD_RE.test(activePath) ? `Backlinks for ${name(activePath)}` : 'Backlinks'}
+          {activePath && MD_RE.test(activePath) ? t('Backlinks for {name}', { name: name(activePath) }) : t('Backlinks')}
         </span>
       </div>
       <div className="sidebar-body">
-        <Section title="Linked mentions" count={linked.length} open={openLinked} onToggle={() => setOpenLinked(!openLinked)}>
-          {linked.length === 0 && <div className="panel-item">No backlinks found.</div>}
+        <Section title={t('Linked mentions')} count={linked.length} open={openLinked} onToggle={() => setOpenLinked(!openLinked)}>
+          {linked.length === 0 && <div className="panel-item">{t('No backlinks found.')}</div>}
           {linked.map((b) => (
             <div key={b} className="mention-box">
               <div className="mention-src" onClick={() => openFile(b)}>
                 {name(b)}
               </div>
-              <div style={{ color: 'var(--text-faint)' }}>links to {name(activePath ?? '')}</div>
+              <div style={{ color: 'var(--text-faint)' }}>{t('links to {name}', { name: name(activePath ?? '') })}</div>
             </div>
           ))}
         </Section>
         <Section
-          title="Unlinked mentions"
+          title={t('Unlinked mentions')}
           count={unlinked.length}
           open={openUnlinked}
           onToggle={() => setOpenUnlinked(!openUnlinked)}
         >
-          {unlinked.length === 0 && <div className="panel-item">No unlinked mentions found.</div>}
+          {unlinked.length === 0 && <div className="panel-item">{t('No unlinked mentions found.')}</div>}
           {unlinked.map((m) => (
             <div key={m.path} className="mention-box">
               <div className="mention-src" onClick={() => openFile(m.path)}>
@@ -182,31 +183,31 @@ function OutgoingPanel() {
     <>
       <div className="nav-header">
         <span className="nav-title">
-          {activePath && MD_RE.test(activePath) ? `Outgoing links from ${name(activePath)}` : 'Outgoing links'}
+          {activePath && MD_RE.test(activePath) ? t('Outgoing links from {name}', { name: name(activePath) }) : t('Outgoing links')}
         </span>
       </div>
       <div className="sidebar-body">
         <div className="section-head" style={{ cursor: 'default' }}>
-          <span>Links</span>
+          <span>{t('Links')}</span>
           <span className="count">{links.length}</span>
         </div>
-        {links.length === 0 && <div className="panel-item">No outgoing links.</div>}
-        {links.map((t) => (
-          <div key={t} className="outgoing-item" onClick={() => openWikilink(t)} title={resolved[t] ?? t}>
+        {links.length === 0 && <div className="panel-item">{t('No outgoing links.')}</div>}
+        {links.map((t2) => (
+          <div key={t2} className="outgoing-item" onClick={() => openWikilink(t2)} title={resolved[t2] ?? t2}>
             <Icon name="file-text" size={14} />
-            <span>{t}</span>
+            <span>{t2}</span>
           </div>
         ))}
         {unresolved.length > 0 && (
           <div className="section-head" style={{ cursor: 'default' }}>
-            <span>Unresolved</span>
+            <span>{t('Unresolved')}</span>
             <span className="count">{unresolved.length}</span>
           </div>
         )}
-        {unresolved.map((t) => (
-          <div key={t} className="outgoing-item unresolved" onClick={() => openWikilink(t)} title="Not created yet — click to create">
+        {unresolved.map((t2) => (
+          <div key={t2} className="outgoing-item unresolved" onClick={() => openWikilink(t2)} title={t('Not created yet — click to create')}>
             <Icon name="file-plus" size={14} />
-            <span>{t}</span>
+            <span>{t2}</span>
           </div>
         ))}
       </div>
@@ -220,10 +221,10 @@ function OutlinePanel() {
   return (
     <>
       <div className="nav-header">
-        <span className="nav-title">Outline</span>
+        <span className="nav-title">{t('Outline')}</span>
       </div>
       <div className="sidebar-body">
-        {heads.length === 0 && <div className="panel-item">No headings</div>}
+        {heads.length === 0 && <div className="panel-item">{t('No headings')}</div>}
         {heads.map((h, i) => (
           <div key={i} className="outline-item" style={{ paddingLeft: 10 + (h.level - 1) * 12 }}>
             {h.text}
@@ -241,14 +242,14 @@ export default function RightSidebar() {
   return (
     <div className="right-sidebar">
       <div className="right-tabs">
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <button
-            key={t.id}
-            className={`right-tab ${rightPanel === t.id ? 'active' : ''}`}
-            title={t.title}
-            onClick={() => setRightPanel(t.id)}
+            key={tab.id}
+            className={`right-tab ${rightPanel === tab.id ? 'active' : ''}`}
+            title={t(tab.title)}
+            onClick={() => setRightPanel(tab.id)}
           >
-            <Icon name={t.icon} size={16} />
+            <Icon name={tab.icon} size={16} />
           </button>
         ))}
       </div>
@@ -257,7 +258,7 @@ export default function RightSidebar() {
       {rightPanel === 'tags' && (
         <>
           <div className="nav-header">
-            <span className="nav-title">Tags</span>
+            <span className="nav-title">{t('Tags')}</span>
           </div>
           <div className="sidebar-body">
             <TagsPanel />

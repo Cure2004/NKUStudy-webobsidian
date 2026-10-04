@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } fr
 import { useStore, type ContextMenuItem } from '../lib/store';
 import { api, type TreeNode } from '../lib/api';
 import { useIsMobile } from '../lib/useIsMobile';
+import { t } from '../lib/i18n';
 import Icon from './Icon';
 import Preview from './Preview';
 import {
@@ -78,7 +79,7 @@ function FileNodeBody({ file }: { file: string }) {
         <span className="title">{name.replace(MD_RE, '')}</span>
       </div>
       <div className="canvas-file-body markdown-preview">
-        {isMd ? (md != null ? <Preview source={md} /> : <div className="canvas-loading">Loading…</div>) : (
+        {isMd ? (md != null ? <Preview source={md} /> : <div className="canvas-loading">{t('Loading…')}</div>) : (
           <div className="canvas-file-generic">
             <Icon name="file" size={28} />
             <span>{name}</span>
@@ -516,33 +517,33 @@ export default function CanvasView() {
     const multi = selNodes.size > 1;
     const colorNames: Record<string, string> = { '1': 'Red', '2': 'Orange', '3': 'Yellow', '4': 'Green', '5': 'Cyan', '6': 'Purple' };
     const colorSub: ContextMenuItem[] = [
-      { label: 'Default', onClick: () => setColor(undefined) },
-      ...Object.keys(PRESET_COLORS).map((k) => ({ label: colorNames[k] ?? `Color ${k}`, onClick: () => setColor(k) })),
+      { label: t('Default'), onClick: () => setColor(undefined) },
+      ...Object.keys(PRESET_COLORS).map((k) => ({ label: colorNames[k] ? t(colorNames[k]) : t('Color {k}', { k }), onClick: () => setColor(k) })),
     ];
     const items: ContextMenuItem[] = [
-      ...(node.type === 'text' ? [{ label: 'Edit', icon: 'pencil', onClick: () => setEditingNode(node.id) }] : []),
-      ...(node.type === 'file' ? [{ label: 'Open', icon: 'arrow-up-right', onClick: () => openFile((node as any).file) }] : []),
-      ...(node.type === 'link' ? [{ label: 'Open link', icon: 'globe', onClick: () => window.open((node as any).url, '_blank', 'noopener') }] : []),
-      { label: 'Set color', icon: 'palette', submenu: colorSub },
-      { label: 'Duplicate', icon: 'file-plus', onClick: duplicateSelection },
-      { label: 'Zoom to selection', icon: 'zoom-in', onClick: zoomToSelection },
+      ...(node.type === 'text' ? [{ label: t('Edit'), icon: 'pencil', onClick: () => setEditingNode(node.id) }] : []),
+      ...(node.type === 'file' ? [{ label: t('Open'), icon: 'arrow-up-right', onClick: () => openFile((node as any).file) }] : []),
+      ...(node.type === 'link' ? [{ label: t('Open link'), icon: 'globe', onClick: () => window.open((node as any).url, '_blank', 'noopener') }] : []),
+      { label: t('Set color'), icon: 'palette', submenu: colorSub },
+      { label: t('Duplicate'), icon: 'file-plus', onClick: duplicateSelection },
+      { label: t('Zoom to selection'), icon: 'zoom-in', onClick: zoomToSelection },
       { label: '', separator: true },
-      { label: 'Bring to front', onClick: bringToFront },
-      { label: 'Send to back', onClick: sendToBack },
+      { label: t('Bring to front'), onClick: bringToFront },
+      { label: t('Send to back'), onClick: sendToBack },
       ...(multi
         ? [{
-            label: 'Align', icon: 'columns', submenu: [
-              { label: 'Align left', onClick: () => alignSelection('left') },
-              { label: 'Align center horizontally', onClick: () => alignSelection('hcenter') },
-              { label: 'Align right', onClick: () => alignSelection('right') },
-              { label: 'Align top', onClick: () => alignSelection('top') },
-              { label: 'Align center vertically', onClick: () => alignSelection('vcenter') },
-              { label: 'Align bottom', onClick: () => alignSelection('bottom') },
+            label: t('Align'), icon: 'columns', submenu: [
+              { label: t('Align left'), onClick: () => alignSelection('left') },
+              { label: t('Align center horizontally'), onClick: () => alignSelection('hcenter') },
+              { label: t('Align right'), onClick: () => alignSelection('right') },
+              { label: t('Align top'), onClick: () => alignSelection('top') },
+              { label: t('Align center vertically'), onClick: () => alignSelection('vcenter') },
+              { label: t('Align bottom'), onClick: () => alignSelection('bottom') },
             ],
           }]
         : []),
       { label: '', separator: true },
-      { label: 'Remove', icon: 'trash', danger: true, onClick: deleteSelection },
+      { label: t('Remove'), icon: 'trash', danger: true, onClick: deleteSelection },
     ];
     openContextMenu({ x: e.clientX, y: e.clientY, items });
   };
@@ -692,48 +693,48 @@ export default function CanvasView() {
 
   // Obsidian editor context-menu structure (mined from obsidian.asar i18n).
   const textMenuItems = (): FmtItem[] => [
-    { label: 'Add link', act: openLinkPicker },
-    { label: 'Add external link', act: () => applyFormat('[', '](https://)') },
+    { label: t('Add link'), act: openLinkPicker },
+    { label: t('Add external link'), act: () => applyFormat('[', '](https://)') },
     { sep: true },
-    { label: 'Format', sub: [
-      { label: 'Bold', act: () => toggleWrap('**') },
-      { label: 'Italic', act: () => toggleWrap('*') },
-      { label: 'Strikethrough', act: () => toggleWrap('~~') },
-      { label: 'Highlight', act: () => toggleWrap('==') },
-      { label: 'Code', act: () => toggleWrap('`') },
-      { label: 'Math', act: () => toggleWrap('$') },
-      { label: 'Comment', act: () => toggleWrap('%%') },
+    { label: t('Format'), sub: [
+      { label: t('Bold'), act: () => toggleWrap('**') },
+      { label: t('Italic'), act: () => toggleWrap('*') },
+      { label: t('Strikethrough'), act: () => toggleWrap('~~') },
+      { label: t('Highlight'), act: () => toggleWrap('==') },
+      { label: t('Code'), act: () => toggleWrap('`') },
+      { label: t('Math'), act: () => toggleWrap('$') },
+      { label: t('Comment'), act: () => toggleWrap('%%') },
       { sep: true },
-      { label: 'Clear formatting', act: clearFormatting },
+      { label: t('Clear formatting'), act: clearFormatting },
     ] },
-    { label: 'Paragraph', sub: [
-      { label: 'Bullet list', act: () => setLinePrefix('- ') },
-      { label: 'Numbered list', act: () => setLinePrefix('1. ') },
-      { label: 'Task list', act: () => setLinePrefix('- [ ] ') },
+    { label: t('Paragraph'), sub: [
+      { label: t('Bullet list'), act: () => setLinePrefix('- ') },
+      { label: t('Numbered list'), act: () => setLinePrefix('1. ') },
+      { label: t('Task list'), act: () => setLinePrefix('- [ ] ') },
       { sep: true },
-      ...[1, 2, 3, 4, 5, 6].map((l) => ({ label: `Heading ${l}`, act: () => setLinePrefix('#'.repeat(l) + ' ') })),
-      { label: 'Body', act: () => setLinePrefix('') },
+      ...[1, 2, 3, 4, 5, 6].map((l) => ({ label: t('Heading {n}', { n: l }), act: () => setLinePrefix('#'.repeat(l) + ' ') })),
+      { label: t('Body'), act: () => setLinePrefix('') },
       { sep: true },
-      { label: 'Quote', act: () => setLinePrefix('> ') },
+      { label: t('Quote'), act: () => setLinePrefix('> ') },
     ] },
-    { label: 'Align', sub: [
-      { label: 'Align left', act: () => setTextAlign('left') },
-      { label: 'Align center', act: () => setTextAlign('center') },
-      { label: 'Align right', act: () => setTextAlign('right') },
+    { label: t('Align'), sub: [
+      { label: t('Align left'), act: () => setTextAlign('left') },
+      { label: t('Align center'), act: () => setTextAlign('center') },
+      { label: t('Align right'), act: () => setTextAlign('right') },
     ] },
-    { label: 'Insert', sub: [
-      { label: 'Table', act: () => insertAtCaret('\n| Column 1 | Column 2 |\n| --- | --- |\n|  |  |\n') },
-      { label: 'Callout', act: () => insertAtCaret('> [!note]\n> ') },
-      { label: 'Code block', act: () => applyFormat('```\n', '\n```') },
-      { label: 'Math block', act: () => applyFormat('$$\n', '\n$$') },
-      { label: 'Horizontal rule', act: () => insertAtCaret('\n\n---\n\n') },
-      { label: 'Footnote', act: () => insertAtCaret('[^1]') },
+    { label: t('Insert'), sub: [
+      { label: t('Table'), act: () => insertAtCaret('\n| Column 1 | Column 2 |\n| --- | --- |\n|  |  |\n') },
+      { label: t('Callout'), act: () => insertAtCaret('> [!note]\n> ') },
+      { label: t('Code block'), act: () => applyFormat('```\n', '\n```') },
+      { label: t('Math block'), act: () => applyFormat('$$\n', '\n$$') },
+      { label: t('Horizontal rule'), act: () => insertAtCaret('\n\n---\n\n') },
+      { label: t('Footnote'), act: () => insertAtCaret('[^1]') },
     ] },
     { sep: true },
-    { label: 'Cut', act: () => doClipboard('cut') },
-    { label: 'Copy', act: () => doClipboard('copy') },
-    { label: 'Paste', act: () => { void doPaste(); } },
-    { label: 'Select all', act: () => editTaRef.current?.select() },
+    { label: t('Cut'), act: () => doClipboard('cut') },
+    { label: t('Copy'), act: () => doClipboard('copy') },
+    { label: t('Paste'), act: () => { void doPaste(); } },
+    { label: t('Select all'), act: () => editTaRef.current?.select() },
   ];
 
   const addTextNode = (cx: number, cy: number) => {
@@ -829,9 +830,9 @@ export default function CanvasView() {
       const { path } = await api.upload(f);
       const c = viewCenter();
       addFileNode(path, c.x, c.y);
-      notify(`Inserted ${path}`);
+      notify(t('Inserted {path}', { path }));
     } catch (err: any) {
-      notify(err?.message ?? 'Upload failed');
+      notify(err?.message ?? t('Upload failed'));
     }
   };
 
@@ -1297,7 +1298,7 @@ export default function CanvasView() {
               onPointerLeave={() => setHoverNode((h) => (h === n.id ? null : h))}
               onContextMenu={(e) => openNodeMenu(e, n)}
             >
-              <div className="canvas-group-label">{(n as any).label ?? 'Group'}</div>
+              <div className="canvas-group-label">{(n as any).label ?? t('Group')}</div>
               {renderHandlesAndPorts(n, sel.nodes.has(n.id), hoverNode === n.id || sel.nodes.has(n.id))}
             </div>
           );
@@ -1482,7 +1483,7 @@ export default function CanvasView() {
                   />
                 ) : (
                   <div className="canvas-text-body markdown-preview" style={{ textAlign: (n as TextNode).textAlign ?? 'left' }}>
-                    {(n as TextNode).text.trim() ? <Preview source={(n as TextNode).text} /> : <span className="canvas-placeholder">Empty card — double-click to edit</span>}
+                    {(n as TextNode).text.trim() ? <Preview source={(n as TextNode).text} /> : <span className="canvas-placeholder">{t('Empty card — double-click to edit')}</span>}
                   </div>
                 )
               )}
@@ -1521,13 +1522,13 @@ export default function CanvasView() {
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="canvas-menu-row">
-            <button className="canvas-menu-btn" title="Remove" onClick={deleteSelection}>
+            <button className="canvas-menu-btn" title={t('Remove')} onClick={deleteSelection}>
               <Icon name="trash" size={16} />
             </button>
-            <button className={`canvas-menu-btn ${showColors ? 'active' : ''}`} title="Set color" onClick={() => setShowColors((v) => !v)}>
+            <button className={`canvas-menu-btn ${showColors ? 'active' : ''}`} title={t('Set color')} onClick={() => setShowColors((v) => !v)}>
               <Icon name="palette" size={16} />
             </button>
-            <button className="canvas-menu-btn" title="Zoom to selection" onClick={zoomToSelection}>
+            <button className="canvas-menu-btn" title={t('Zoom to selection')} onClick={zoomToSelection}>
               <Icon name="zoom-in" size={16} />
             </button>
             {selHasText && (
@@ -1537,7 +1538,7 @@ export default function CanvasView() {
                   <button
                     key={a}
                     className={`canvas-menu-btn ${curAlign === a ? 'active' : ''}`}
-                    title={`Align ${a}`}
+                    title={t('Align {a}', { a })}
                     onClick={() => setTextAlign(a)}
                   >
                     <Icon name={`align-${a}`} size={16} />
@@ -1548,7 +1549,7 @@ export default function CanvasView() {
             {onlyEdges && (
               <>
                 <span className="canvas-dir-wrap">
-                  <button className={`canvas-menu-btn ${showDir ? 'active' : ''}`} title="Arrow direction" onClick={() => setShowDir((v) => !v)}>
+                  <button className={`canvas-menu-btn ${showDir ? 'active' : ''}`} title={t('Arrow direction')} onClick={() => setShowDir((v) => !v)}>
                     <Icon name={curDir === 'non' ? 'minus' : curDir === 'bi' ? 'arrow-left-right' : 'arrow-right'} size={16} />
                   </button>
                   {showDir && (
@@ -1556,7 +1557,7 @@ export default function CanvasView() {
                       {([['non', 'minus', 'Nondirectional'], ['uni', 'arrow-right', 'Unidirectional'], ['bi', 'arrow-left-right', 'Bidirectional']] as const).map(([k, ic, lbl]) => (
                         <button key={k} className="canvas-dir-item" onClick={() => setEdgeDirection(k)}>
                           <Icon name={ic} size={15} />
-                          <span className="lbl">{lbl}</span>
+                          <span className="lbl">{t(lbl)}</span>
                           {curDir === k && <Icon name="check" size={14} />}
                         </button>
                       ))}
@@ -1564,13 +1565,13 @@ export default function CanvasView() {
                   )}
                 </span>
                 {selEdgeHasLabel && (
-                  <button className="canvas-menu-btn" title="Remove label" onClick={removeEdgeLabel}>
+                  <button className="canvas-menu-btn" title={t('Remove label')} onClick={removeEdgeLabel}>
                     <Icon name="x" size={16} />
                   </button>
                 )}
                 <button
                   className="canvas-menu-btn"
-                  title="Edit label"
+                  title={t('Edit label')}
                   onClick={() => { const id = Array.from(sel.edges)[0]; if (id) setEditingEdge(id); }}
                 >
                   <Icon name="pencil" size={16} />
@@ -1582,7 +1583,7 @@ export default function CanvasView() {
             <div className="canvas-menu-colors">
               <button
                 className={`canvas-swatch canvas-swatch-default ${!selColor ? 'selected' : ''}`}
-                title="Default color"
+                title={t('Default color')}
                 onClick={() => setColor(undefined)}
               />
               {Object.entries(PRESET_COLORS).map(([k, hex]) => (
@@ -1590,11 +1591,11 @@ export default function CanvasView() {
                   key={k}
                   className={`canvas-swatch ${selColor === k ? 'selected' : ''}`}
                   style={{ background: hex }}
-                  title={`Color ${k}`}
+                  title={t('Color {k}', { k })}
                   onClick={() => setColor(k)}
                 />
               ))}
-              <label className={`canvas-swatch canvas-swatch-custom ${isCustomColor ? 'selected' : ''}`} title="Custom color…">
+              <label className={`canvas-swatch canvas-swatch-custom ${isCustomColor ? 'selected' : ''}`} title={t('Custom color…')}>
                 <input
                   type="color"
                   value={isCustomColor ? (selColor as string) : '#e93147'}
@@ -1609,26 +1610,26 @@ export default function CanvasView() {
 
       {/* Zoom / control toolbar (bottom-left) */}
       <div className="canvas-toolbar canvas-toolbar-zoom" onPointerDown={(e) => e.stopPropagation()}>
-        <button title="Zoom out" onClick={() => zoomBy(1 / 1.2)}><Icon name="indent-decrease" size={16} /></button>
-        <button title="Reset zoom (100%)" className="canvas-zoom-pct" onClick={resetZoom}>{Math.round(view.scale * 100)}%</button>
-        <button title="Zoom in" onClick={() => zoomBy(1.2)}><Icon name="indent-increase" size={16} /></button>
+        <button title={t('Zoom out')} onClick={() => zoomBy(1 / 1.2)}><Icon name="indent-decrease" size={16} /></button>
+        <button title={t('Reset zoom (100%)')} className="canvas-zoom-pct" onClick={resetZoom}>{Math.round(view.scale * 100)}%</button>
+        <button title={t('Zoom in')} onClick={() => zoomBy(1.2)}><Icon name="indent-increase" size={16} /></button>
         <span className="canvas-tb-sep" />
-        <button title="Zoom to fit" onClick={zoomFit}><Icon name="graph" size={16} /></button>
+        <button title={t('Zoom to fit')} onClick={zoomFit}><Icon name="graph" size={16} /></button>
         <span className="canvas-tb-sep" />
-        <button title="Undo (⌘Z)" disabled={undoStack.current.length === 0} onClick={undo}><Icon name="undo" size={16} /></button>
-        <button title="Redo (⌘⇧Z)" disabled={redoStack.current.length === 0} onClick={redo}><Icon name="redo" size={16} /></button>
+        <button title={t('Undo (⌘Z)')} disabled={undoStack.current.length === 0} onClick={undo}><Icon name="undo" size={16} /></button>
+        <button title={t('Redo (⌘⇧Z)')} disabled={redoStack.current.length === 0} onClick={redo}><Icon name="redo" size={16} /></button>
         <span style={{ display: 'none' }}>{histV}</span>
       </div>
 
       {/* Add toolbar (bottom-center) — card / note / image, like Obsidian */}
       <div className="canvas-toolbar canvas-toolbar-add" onPointerDown={(e) => e.stopPropagation()}>
-        <button title="Add card (or double-click canvas)" onClick={() => { const c = viewCenter(); addTextNode(c.x, c.y); }}>
+        <button title={t('Add card (or double-click canvas)')} onClick={() => { const c = viewCenter(); addTextNode(c.x, c.y); }}>
           <Icon name="file-plus" size={18} />
         </button>
-        <button title="Add card from note" onClick={() => { setNoteFilter(''); setNotePicker((v) => !v); }}>
+        <button title={t('Add card from note')} onClick={() => { setNoteFilter(''); setNotePicker((v) => !v); }}>
           <Icon name="file-text" size={18} />
         </button>
-        <button title="Add image" onClick={() => fileInputRef.current?.click()}>
+        <button title={t('Add image')} onClick={() => fileInputRef.current?.click()}>
           <Icon name="image" size={18} />
         </button>
       </div>
@@ -1639,13 +1640,13 @@ export default function CanvasView() {
           <input
             className="canvas-notepicker-input"
             autoFocus
-            placeholder="Search notes…"
+            placeholder={t('Search notes…')}
             value={noteFilter}
             onChange={(e) => setNoteFilter(e.target.value)}
             onKeyDown={(e) => e.key === 'Escape' && setNotePicker(false)}
           />
           <div className="canvas-notepicker-list">
-            {filteredNotes.length === 0 && <div className="canvas-notepicker-empty">No files</div>}
+            {filteredNotes.length === 0 && <div className="canvas-notepicker-empty">{t('No files')}</div>}
             {filteredNotes.map((f) => (
               <button
                 key={f.path}
@@ -1682,7 +1683,7 @@ export default function CanvasView() {
             className="canvas-dropmenu-item"
             onClick={() => { addConnectedTextNode(edgeDrop.cx, edgeDrop.cy, edgeDrop.edgeId, edgeDrop.end); setEdgeDrop(null); }}
           >
-            <Icon name="file-plus" size={15} /> Add card
+            <Icon name="file-plus" size={15} /> {t('Add card')}
           </button>
           <button
             className="canvas-dropmenu-item"
@@ -1693,7 +1694,7 @@ export default function CanvasView() {
               setEdgeDrop(null);
             }}
           >
-            <Icon name="file-text" size={15} /> Add note from vault
+            <Icon name="file-text" size={15} /> {t('Add note from vault')}
           </button>
         </div>
       )}
@@ -1713,7 +1714,7 @@ export default function CanvasView() {
           <input
             className="canvas-notepicker-input"
             autoFocus
-            placeholder="Link to note…"
+            placeholder={t('Link to note…')}
             value={linkFilter}
             onChange={(e) => setLinkFilter(e.target.value)}
             onKeyDown={(e) => {
@@ -1722,7 +1723,7 @@ export default function CanvasView() {
             }}
           />
           <div className="canvas-notepicker-list">
-            {filteredLinks.length === 0 && <div className="canvas-notepicker-empty">No files</div>}
+            {filteredLinks.length === 0 && <div className="canvas-notepicker-empty">{t('No files')}</div>}
             {filteredLinks.map((f) => (
               <button
                 key={f.path}
@@ -1750,7 +1751,7 @@ export default function CanvasView() {
         {showGrip && (
           <div
             className="canvas-node-grip"
-            title="Drag to move"
+            title={t('Drag to move')}
             onPointerDown={(e) => beginNodeDrag(e, n.id)}
             onDoubleClick={(e) => e.stopPropagation()}
           >

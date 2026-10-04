@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api } from '../lib/api';
+import { t } from '../lib/i18n';
 import Icon from './Icon';
 
 export default function StatusBar() {
@@ -22,14 +23,14 @@ export default function StatusBar() {
   const sync = async () => {
     if (syncing) return;
     setSyncing(true);
-    notify('Syncing…');
+    notify(t('Syncing…'));
     try {
       const r = await api.gitSync();
-      notify(r.ok ? 'Synced ✓' : `Sync: ${r.log.at(-1)}`);
+      notify(r.ok ? t('Synced ✓') : t('Sync: {msg}', { msg: r.log.at(-1) ?? '' }));
       await loadTree();
       await refresh();
     } catch (e: any) {
-      notify(`Sync failed: ${e.message}`);
+      notify(t('Sync failed: {msg}', { msg: e.message }));
     } finally {
       setSyncing(false);
     }
@@ -39,17 +40,17 @@ export default function StatusBar() {
   const words = isText ? content.trim().split(/\s+/).filter(Boolean).length : 0;
 
   const gitLabel = !git?.isRepo
-    ? 'No vault sync'
+    ? t('No vault sync')
     : git.clean
       ? `git ${git.branch}${git.ahead ? ` ↑${git.ahead}` : ''}${git.behind ? ` ↓${git.behind}` : ''}`
-      : `${git.modified + git.notAdded} unsaved changes`;
+      : t('{n} unsaved changes', { n: git.modified + git.notAdded });
 
   return (
     <div className="status-bar">
-      {dirty && <span>Saving…</span>}
-      {isText && <span>{words} words</span>}
-      {isText && <span>{content.length} characters</span>}
-      <span className="clickable" title="Git sync" onClick={sync}>
+      {dirty && <span>{t('Saving…')}</span>}
+      {isText && <span>{t('{n} words', { n: words })}</span>}
+      {isText && <span>{t('{n} characters', { n: content.length })}</span>}
+      <span className="clickable" title={t('Git sync')} onClick={sync}>
         <Icon name="refresh-cw" size={13} style={syncing ? { animation: 'spin 1s linear infinite' } : undefined} />
         {gitLabel}
       </span>

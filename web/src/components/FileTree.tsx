@@ -3,6 +3,7 @@ import { useStore, type TreeSort } from '../lib/store';
 import { api, type TreeNode } from '../lib/api';
 import { findNode, pruneDescendants } from '../lib/tree';
 import { pathToUrl } from '../lib/urlsync';
+import { t } from '../lib/i18n';
 import Icon from './Icon';
 
 /** Inline rename box shown in place of a tree row's name (Obsidian-style). */
@@ -35,7 +36,7 @@ function RenameInput({ node, onDone }: { node: TreeNode; onDone: () => void }) {
       await api.rename(node.path, to);
       closeTab(node.path);
     } catch (e: any) {
-      notify(e?.message ?? 'Rename failed');
+      notify(e?.message ?? t('Rename failed'));
     }
     await loadTree();
   };
@@ -98,12 +99,12 @@ async function moveItemsTo(paths: string[], targetDir: string): Promise<void> {
       closeTab(from);
       moved++;
     } catch (err: any) {
-      notify(err?.message ?? 'Move failed');
+      notify(err?.message ?? t('Move failed'));
     }
   }
   setSelected([]);
   await loadTree();
-  if (moved > 1) notify(`Moved ${moved} items`);
+  if (moved > 1) notify(t('Moved {n} items', { n: moved }));
 }
 
 /** Visible tree rows in display order — used to resolve a Shift-click range. */
@@ -192,7 +193,7 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
 
   const doDeleteMany = async () => {
     const paths = pruneDescendants(useStore.getState().selected);
-    if (!paths.length || !confirm(`Delete ${paths.length} item${paths.length > 1 ? 's' : ''}?`)) return;
+    if (!paths.length || !confirm(t('Delete {n} item(s)?', { n: paths.length }))) return;
     let n = 0;
     for (const p of paths) {
       const r = await api.remove(p).catch(() => null);
@@ -200,17 +201,17 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
     }
     setSelected([]);
     await loadTree();
-    notify(`Deleted ${n} item${n > 1 ? 's' : ''}`);
+    notify(t('Deleted {n} item(s)', { n }));
   };
   const doMoveMany = () => setMovePath(useStore.getState().selected);
 
   const doRename = () => setRenamingPath(node.path);
   const doDelete = async () => {
-    if (confirm(`Delete "${node.name}"?`)) {
+    if (confirm(t('Delete "{name}"?', { name: node.name }))) {
       const r = await api.remove(node.path);
       closeTab(node.path);
       await loadTree();
-      notify(r.deleted ? 'Deleted permanently' : 'Moved to trash');
+      notify(r.deleted ? t('Deleted permanently') : t('Moved to trash'));
     }
   };
 
@@ -222,13 +223,13 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
     const copyPath = dot > 0 ? `${node.path.slice(0, dot)} copy${node.path.slice(dot)}` : `${node.path} copy`;
     await api.write(copyPath, content);
     await loadTree();
-    notify('Made a copy');
+    notify(t('Made a copy'));
   };
   const doMove = () => setMovePath(node.path);
 
   const doClipboard = (mode: 'copy' | 'cut') => () => {
     setClipboard({ path: node.path, mode });
-    notify(mode === 'cut' ? 'Cut' : 'Copied');
+    notify(mode === 'cut' ? t('Cut') : t('Copied'));
   };
   const doPaste = async () => {
     const clip = useStore.getState().clipboard;
@@ -236,7 +237,7 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
     const targetDir = isFolder ? node.path : parentDir(node.path);
     // Never paste a folder into itself or one of its own descendants.
     if (clip.path === targetDir || targetDir === clip.path || targetDir.startsWith(`${clip.path}/`)) {
-      notify('Cannot paste into itself');
+      notify(t('Cannot paste into itself'));
       return;
     }
     const base = clip.path.split('/').pop()!;
@@ -249,9 +250,9 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
         closeTab(clip.path);
         setClipboard(null);
         await loadTree();
-        notify('Moved');
+        notify(t('Moved'));
       } catch (e: any) {
-        notify(e?.message ?? 'Paste failed');
+        notify(e?.message ?? t('Paste failed'));
       }
       return;
     }
@@ -261,19 +262,19 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
     try {
       await api.copy(clip.path, to);
       await loadTree();
-      notify('Pasted');
+      notify(t('Pasted'));
     } catch (e: any) {
-      notify(e?.message ?? 'Paste failed');
+      notify(e?.message ?? t('Paste failed'));
     }
   };
 
   const copyPath = () => {
     navigator.clipboard?.writeText(node.path).catch(() => {});
-    notify('Path copied');
+    notify(t('Path copied'));
   };
   const copyUrl = () => {
     navigator.clipboard?.writeText(`${location.origin}${pathToUrl(node.path)}`).catch(() => {});
-    notify('URL copied');
+    notify(t('URL copied'));
   };
 
   const onContext = (e: React.MouseEvent) => {
@@ -286,9 +287,9 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
         x: e.clientX,
         y: e.clientY,
         items: [
-          { label: `Move ${sel.length} items to…`, onClick: doMoveMany },
+          { label: t('Move {n} items to…', { n: sel.length }), onClick: doMoveMany },
           { label: '', separator: true },
-          { label: `Delete ${sel.length} items`, danger: true, onClick: doDeleteMany },
+          { label: t('Delete {n} items', { n: sel.length }), danger: true, onClick: doDeleteMany },
         ],
       });
       return;
@@ -297,40 +298,40 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
     if (!sel.includes(node.path)) { setSelected([node.path]); setSelectAnchor(node.path); }
     const items = isFolder
       ? [
-          { label: 'New note', onClick: () => newNote(node.path) },
-          { label: 'New canvas', onClick: () => newCanvas(node.path) },
-          { label: 'New folder', onClick: () => newFolder(node.path) },
+          { label: t('New note'), onClick: () => newNote(node.path) },
+          { label: t('New canvas'), onClick: () => newCanvas(node.path) },
+          { label: t('New folder'), onClick: () => newFolder(node.path) },
           { label: '', separator: true },
-          { label: 'Copy', onClick: doClipboard('copy') },
-          { label: 'Cut', onClick: doClipboard('cut') },
-          ...(clipboard ? [{ label: 'Paste', onClick: doPaste }] : []),
+          { label: t('Copy'), onClick: doClipboard('copy') },
+          { label: t('Cut'), onClick: doClipboard('cut') },
+          ...(clipboard ? [{ label: t('Paste'), onClick: doPaste }] : []),
           { label: '', separator: true },
-          { label: 'Rename…', onClick: doRename },
-          { label: 'Move folder to…', onClick: doMove },
-          { label: 'Copy path', onClick: copyPath },
-          { label: 'Copy URL path', onClick: copyUrl },
+          { label: t('Rename…'), onClick: doRename },
+          { label: t('Move folder to…'), onClick: doMove },
+          { label: t('Copy path'), onClick: copyPath },
+          { label: t('Copy URL path'), onClick: copyUrl },
           { label: '', separator: true },
-          { label: 'Delete', danger: true, onClick: doDelete },
+          { label: t('Delete'), danger: true, onClick: doDelete },
         ]
       : [
-          { label: 'Open', onClick: () => openFile(node.path) },
-          { label: 'Open to the right', onClick: () => openToSide(node.path) },
+          { label: t('Open'), onClick: () => openFile(node.path) },
+          { label: t('Open to the right'), onClick: () => openToSide(node.path) },
           { label: '', separator: true },
-          { label: bookmarks.includes(node.path) ? 'Remove bookmark' : 'Bookmark', onClick: () => toggleBookmark(node.path) },
+          { label: bookmarks.includes(node.path) ? t('Remove bookmark') : t('Bookmark'), onClick: () => toggleBookmark(node.path) },
           ...(/\.(md|markdown|canvas)$/i.test(node.path)
-            ? [{ label: 'Share…', icon: 'globe', onClick: () => setShareDialog(node.path) }]
+            ? [{ label: t('Share…'), icon: 'globe', onClick: () => setShareDialog(node.path) }]
             : []),
-          { label: 'Make a copy', onClick: doCopy },
+          { label: t('Make a copy'), onClick: doCopy },
           { label: '', separator: true },
-          { label: 'Copy', onClick: doClipboard('copy') },
-          { label: 'Cut', onClick: doClipboard('cut') },
-          ...(clipboard ? [{ label: 'Paste', onClick: doPaste }] : []),
+          { label: t('Copy'), onClick: doClipboard('copy') },
+          { label: t('Cut'), onClick: doClipboard('cut') },
+          ...(clipboard ? [{ label: t('Paste'), onClick: doPaste }] : []),
           { label: '', separator: true },
-          { label: 'Rename…', onClick: doRename },
-          { label: 'Move file to…', onClick: doMove },
-          { label: 'Copy URL path', onClick: copyUrl },
+          { label: t('Rename…'), onClick: doRename },
+          { label: t('Move file to…'), onClick: doMove },
+          { label: t('Copy URL path'), onClick: copyUrl },
           { label: '', separator: true },
-          { label: 'Delete', danger: true, onClick: doDelete },
+          { label: t('Delete'), danger: true, onClick: doDelete },
         ];
     openContextMenu({ x: e.clientX, y: e.clientY, items });
   };
@@ -534,9 +535,9 @@ export default function FileTree() {
         closeTab(clip.path);
         setClipboard(null);
         await loadTree();
-        notify('Moved');
+        notify(t('Moved'));
       } catch (e: any) {
-        notify(e?.message ?? 'Paste failed');
+        notify(e?.message ?? t('Paste failed'));
       }
       return;
     }
@@ -544,9 +545,9 @@ export default function FileTree() {
     try {
       await api.copy(clip.path, name);
       await loadTree();
-      notify('Pasted');
+      notify(t('Pasted'));
     } catch (e: any) {
-      notify(e?.message ?? 'Paste failed');
+      notify(e?.message ?? t('Paste failed'));
     }
   };
 
@@ -556,24 +557,24 @@ export default function FileTree() {
       x: e.clientX,
       y: e.clientY,
       items: [
-        { label: 'New note', onClick: () => newNote('') },
-        { label: 'New canvas', onClick: () => newCanvas('') },
-        { label: 'New folder', onClick: () => newFolder('') },
+        { label: t('New note'), onClick: () => newNote('') },
+        { label: t('New canvas'), onClick: () => newCanvas('') },
+        { label: t('New folder'), onClick: () => newFolder('') },
         ...(clipboard
-          ? [{ label: '', separator: true }, { label: 'Paste', onClick: pasteToRoot }]
+          ? [{ label: '', separator: true }, { label: t('Paste'), onClick: pasteToRoot }]
           : []),
       ],
     });
   };
 
-  if (!tree) return <div style={{ padding: 12, color: 'var(--text-faint)' }}>Loading…</div>;
+  if (!tree) return <div style={{ padding: 12, color: 'var(--text-faint)' }}>{t('Loading…')}</div>;
   if (!tree.children?.length)
     return (
       <div
         onContextMenu={onRootContext}
         style={{ padding: 12, color: 'var(--text-faint)', minHeight: '100%' }}
       >
-        Vault is empty.
+        {t('Vault is empty.')}
       </div>
     );
   return (

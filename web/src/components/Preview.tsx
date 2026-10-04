@@ -7,6 +7,7 @@ import { renderMarkdown } from '../lib/markdown';
 import { calloutIconSvg } from '../lib/callouts';
 import { openLightbox } from '../lib/imageLightbox';
 import { api } from '../lib/api';
+import { t } from '../lib/i18n';
 
 /** Syntax-highlight a `<code class="language-x">` block with the SAME CodeMirror
  *  grammars Live Preview uses (token classes styled by the Obsidian palette). */
@@ -68,7 +69,7 @@ function setupHtmlPreview(codeEl: HTMLElement): void {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'html-render-btn';
-  btn.textContent = 'Render HTML';
+  btn.textContent = t('Render HTML');
   wrap.appendChild(btn);
   let frame: HTMLIFrameElement | null = null;
   btn.addEventListener('click', () => {
@@ -76,7 +77,7 @@ function setupHtmlPreview(codeEl: HTMLElement): void {
       frame.remove();
       frame = null;
       pre.style.display = '';
-      btn.textContent = 'Render HTML';
+      btn.textContent = t('Render HTML');
       return;
     }
     frame = document.createElement('iframe');
@@ -85,7 +86,7 @@ function setupHtmlPreview(codeEl: HTMLElement): void {
     frame.srcdoc = codeEl.textContent ?? '';
     pre.style.display = 'none';
     wrap.appendChild(frame);
-    btn.textContent = 'Hide HTML';
+    btn.textContent = t('Hide HTML');
   });
 }
 
@@ -214,12 +215,12 @@ export default function Preview({ source }: { source?: string }) {
       x: e.clientX,
       y: e.clientY,
       items: [
-        { label: 'Copy', icon: 'file-text', onClick: () => sel && navigator.clipboard.writeText(sel).catch(() => {}) },
+        { label: t('Copy'), icon: 'file-text', onClick: () => sel && navigator.clipboard.writeText(sel).catch(() => {}) },
         ...(sel
-          ? [{ label: `Search for “${sel.slice(0, 24)}”`, icon: 'search', onClick: () => setLeftPanel('search') }]
+          ? [{ label: t('Search for “{sel}”', { sel: sel.slice(0, 24) }), icon: 'search', onClick: () => setLeftPanel('search') }]
           : []),
         { label: '', separator: true },
-        { label: 'Select all', onClick: () => {
+        { label: t('Select all'), onClick: () => {
             const r = document.createRange();
             const el = (e.currentTarget as HTMLElement);
             r.selectNodeContents(el);

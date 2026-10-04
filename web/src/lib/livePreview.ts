@@ -11,6 +11,7 @@ import { syntaxTree } from '@codemirror/language';
 import { CALLOUT_SLOT, CALLOUT_RE, calloutDefaultTitle, calloutIconSvg } from './callouts';
 import { openLightbox } from './imageLightbox';
 import { VIDEO_EXT_RE, AUDIO_EXT_RE } from './media';
+import { t } from './i18n';
 
 /**
  * Live Preview for CodeMirror 6 — an Obsidian-style WYSIWYG editing mode.
@@ -456,7 +457,7 @@ export function setLivePreviewNoteEmbedProvider(fn: (target: string) => Promise<
 
 function embedNotFound(el: HTMLElement, target: string) {
   el.classList.add('cm-embed-missing');
-  el.textContent = `"${target}" could not be found.`;
+  el.textContent = t('"{target}" could not be found.', { target });
 }
 
 class NoteEmbedWidget extends WidgetType {
@@ -474,7 +475,7 @@ class NoteEmbedWidget extends WidgetType {
     box.className = 'internal-embed markdown-embed cm-note-embed';
     const open = document.createElement('span');
     open.className = 'markdown-embed-link';
-    open.title = 'Open link';
+    open.title = t('Open link');
     open.innerHTML =
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
     open.addEventListener('mousedown', (e) => {
@@ -643,7 +644,7 @@ class HtmlPreviewWidget extends WidgetType {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'cm-html-render-btn';
-    btn.textContent = this.rendered ? 'Hide HTML' : 'Render HTML';
+    btn.textContent = this.rendered ? t('Hide HTML') : t('Render HTML');
     btn.addEventListener('mousedown', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1088,32 +1089,32 @@ class TableWidget extends WidgetType {
 
     // rowIdx: -1 for header row, otherwise body row index.
     const cellMenu = (col: number, rowIdx: number): LpMenuItem[] => [
-      { label: 'Insert column left', icon: 'plus', onClick: () => insertColumn(col) },
-      { label: 'Insert column right', icon: 'plus', onClick: () => insertColumn(col + 1) },
-      { label: 'Insert row above', icon: 'plus', onClick: () => insertRow(Math.max(0, rowIdx)) },
-      { label: 'Insert row below', icon: 'plus', onClick: () => insertRow(rowIdx + 1) },
+      { label: t('Insert column left'), icon: 'plus', onClick: () => insertColumn(col) },
+      { label: t('Insert column right'), icon: 'plus', onClick: () => insertColumn(col + 1) },
+      { label: t('Insert row above'), icon: 'plus', onClick: () => insertRow(Math.max(0, rowIdx)) },
+      { label: t('Insert row below'), icon: 'plus', onClick: () => insertRow(rowIdx + 1) },
       { label: '', separator: true },
-      { label: 'Move column left', onClick: () => moveColumn(col, col - 1) },
-      { label: 'Move column right', onClick: () => moveColumn(col, col + 1) },
+      { label: t('Move column left'), onClick: () => moveColumn(col, col - 1) },
+      { label: t('Move column right'), onClick: () => moveColumn(col, col + 1) },
       ...(rowIdx >= 0
         ? [
-            { label: 'Move row up', onClick: () => moveRow(rowIdx, rowIdx - 1) },
-            { label: 'Move row down', onClick: () => moveRow(rowIdx, rowIdx + 1) },
+            { label: t('Move row up'), onClick: () => moveRow(rowIdx, rowIdx - 1) },
+            { label: t('Move row down'), onClick: () => moveRow(rowIdx, rowIdx + 1) },
           ]
         : []),
       { label: '', separator: true },
       {
-        label: 'Align column',
+        label: t('Align column'),
         icon: 'align-left',
         submenu: [
-          { label: 'Left', icon: 'align-left', onClick: () => setAlign(col, 'left') },
-          { label: 'Center', icon: 'align-center', onClick: () => setAlign(col, 'center') },
-          { label: 'Right', icon: 'align-right', onClick: () => setAlign(col, 'right') },
+          { label: t('Left'), icon: 'align-left', onClick: () => setAlign(col, 'left') },
+          { label: t('Center'), icon: 'align-center', onClick: () => setAlign(col, 'center') },
+          { label: t('Right'), icon: 'align-right', onClick: () => setAlign(col, 'right') },
         ],
       },
       { label: '', separator: true },
-      { label: 'Delete column', icon: 'trash-2', onClick: () => deleteColumn(col) },
-      ...(rowIdx >= 0 ? [{ label: 'Delete row', icon: 'trash-2', onClick: () => deleteRow(rowIdx) }] : []),
+      { label: t('Delete column'), icon: 'trash-2', onClick: () => deleteColumn(col) },
+      ...(rowIdx >= 0 ? [{ label: t('Delete row'), icon: 'trash-2', onClick: () => deleteRow(rowIdx) }] : []),
     ];
 
     // ---- build header + body ----
@@ -1153,7 +1154,7 @@ class TableWidget extends WidgetType {
       const h = document.createElement('div');
       h.className = 'cm-col-handle';
       h.contentEditable = 'false';
-      h.title = 'Select / format column';
+      h.title = t('Select / format column');
       h.addEventListener('mouseenter', () => highlightCol(c, true));
       h.addEventListener('mouseleave', () => highlightCol(c, false));
       h.addEventListener('mousedown', (e) => {
@@ -1169,7 +1170,7 @@ class TableWidget extends WidgetType {
       const h = document.createElement('div');
       h.className = 'cm-row-handle';
       h.contentEditable = 'false';
-      h.title = 'Select / format row';
+      h.title = t('Select / format row');
       h.addEventListener('mouseenter', () => highlightRow(tr, true));
       h.addEventListener('mouseleave', () => highlightRow(tr, false));
       h.addEventListener('mousedown', (e) => {
@@ -1183,7 +1184,7 @@ class TableWidget extends WidgetType {
     // ---- hover +column / +row buttons (mousedown so a focused cell flushes) ----
     const addCol = document.createElement('div');
     addCol.className = 'cm-table-addcol';
-    addCol.title = 'Add column';
+    addCol.title = t('Add column');
     addCol.textContent = '+';
     addCol.addEventListener('mousedown', (e) => {
       e.preventDefault();
@@ -1191,7 +1192,7 @@ class TableWidget extends WidgetType {
     });
     const addRow = document.createElement('div');
     addRow.className = 'cm-table-addrow';
-    addRow.title = 'Add row';
+    addRow.title = t('Add row');
     addRow.textContent = '+';
     addRow.addEventListener('mousedown', (e) => {
       e.preventDefault();
@@ -1388,12 +1389,12 @@ function displayTypeOf(p: Prop): string {
 }
 // The six selectable types shown in the right-click "Property type" submenu.
 const PROP_TYPE_OPTIONS: { label: string; dt: string }[] = [
-  { label: 'Text', dt: 'text' },
-  { label: 'List', dt: 'list' },
-  { label: 'Number', dt: 'number' },
-  { label: 'Checkbox', dt: 'checkbox' },
-  { label: 'Date', dt: 'date' },
-  { label: 'Date & time', dt: 'datetime' },
+  { label: t('Text'), dt: 'text' },
+  { label: t('List'), dt: 'list' },
+  { label: t('Number'), dt: 'number' },
+  { label: t('Checkbox'), dt: 'checkbox' },
+  { label: t('Date'), dt: 'date' },
+  { label: t('Date & time'), dt: 'datetime' },
 ];
 
 class FrontmatterWidget extends WidgetType {
@@ -1494,16 +1495,16 @@ class FrontmatterWidget extends WidgetType {
 
     const propMenu = (key: string, idx: number, curDt: string): LpMenuItem[] => [
       {
-        label: 'Property type',
+        label: t('Property type'),
         icon: 'list',
         submenu: PROP_TYPE_OPTIONS.map((o) => ({
-          label: (o.dt === curDt ? '✓  ' : '  ') + o.label,
+          label: (o.dt === curDt ? '✓  ' : '  ') + o.label,
           onClick: () => void setType(key, o.dt),
         })),
       },
       { label: '', separator: true },
       {
-        label: 'Copy value',
+        label: t('Copy value'),
         icon: 'file-text',
         onClick: () => {
           const p = readProps()[idx];
@@ -1511,14 +1512,14 @@ class FrontmatterWidget extends WidgetType {
         },
       },
       { label: '', separator: true },
-      { label: 'Remove', icon: 'trash-2', onClick: () => mutate((ps) => ps.splice(idx, 1)) },
+      { label: t('Remove'), icon: 'trash-2', onClick: () => mutate((ps) => ps.splice(idx, 1)) },
     ];
 
     const props = parseFrontmatter(this.yaml);
 
     const header = document.createElement('div');
     header.className = 'cm-props-header';
-    header.textContent = 'Properties';
+    header.textContent = t('Properties');
     box.appendChild(header);
 
     const editable = (el: HTMLElement, onCommit: () => void) => {
@@ -1756,7 +1757,7 @@ class FrontmatterWidget extends WidgetType {
         const add = document.createElement('span');
         add.className = 'prop-pill-add';
         add.textContent = '+';
-        add.title = 'Add item';
+        add.title = t('Add item');
         add.addEventListener('mousedown', (e) => {
           e.preventDefault();
           void startAddItem(p.key, idx, v, add);
@@ -1769,7 +1770,7 @@ class FrontmatterWidget extends WidgetType {
       const del = document.createElement('span');
       del.className = 'prop-del';
       del.textContent = '×';
-      del.title = 'Delete property';
+      del.title = t('Delete property');
       del.addEventListener('mousedown', (e) => {
         e.preventDefault();
         mutate((ps) => ps.splice(idx, 1));
@@ -1781,7 +1782,7 @@ class FrontmatterWidget extends WidgetType {
 
     const addBtn = document.createElement('div');
     addBtn.className = 'cm-props-add';
-    addBtn.textContent = '+ Add property';
+    addBtn.textContent = t('+ Add property');
 
     // Add a property with a name-suggester dropdown (existing vault keys), like Obsidian.
     const startAdd = async () => {

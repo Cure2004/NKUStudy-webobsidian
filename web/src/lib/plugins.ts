@@ -9,6 +9,7 @@
  */
 import { api } from './api';
 import { useStore } from './store';
+import { t } from './i18n';
 
 // ---- Minimal Obsidian API shim ------------------------------------------
 class Events {
@@ -35,7 +36,7 @@ class TFile {
 }
 
 class Vault extends Events {
-  getName() { return 'WebObsidian'; }
+  getName() { return t('WebObsidian'); }
   async read(file: TFile) { const r = await api.read(file.path); return typeof r === 'string' ? r : r.content; }
   async cachedRead(file: TFile) { return this.read(file); }
   async modify(file: TFile, data: string) { await api.write(file.path, data); }
@@ -156,7 +157,7 @@ export async function loadPlugins(): Promise<void> {
         await loadPlugin(p.id, p);
       } catch (e) {
         console.warn(`[plugin] failed to load ${p.id}:`, e);
-        new Notice(`Plugin "${p.name}" failed to load (incompatible API)`);
+        new Notice(t('Plugin "{name}" failed to load (incompatible API)', { name: p.name }));
       }
     }
   } catch {
