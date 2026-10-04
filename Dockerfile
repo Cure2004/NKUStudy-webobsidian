@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # 国内镜像源（可用 --build-arg 覆盖为其它源或官方源）。
 # APK_MIRROR: 替换 Alpine 的 dl-cdn 主机名；NPM_REGISTRY: npm 包源。
 ARG APK_MIRROR=mirrors.aliyun.com
