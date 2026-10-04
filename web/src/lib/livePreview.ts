@@ -11,6 +11,7 @@ import { syntaxTree } from '@codemirror/language';
 import { CALLOUT_SLOT, CALLOUT_RE, calloutDefaultTitle, calloutIconSvg } from './callouts';
 import { openLightbox } from './imageLightbox';
 import { VIDEO_EXT_RE, AUDIO_EXT_RE } from './media';
+import { transformWikiComponents } from './wikiComponents';
 import { t } from './i18n';
 
 /**
@@ -1249,7 +1250,9 @@ class HtmlBlockWidget extends WidgetType {
   toDOM() {
     const div = document.createElement('div');
     div.className = 'cm-html-block';
-    div.innerHTML = sanitizeHtml(this.html);
+    // 单块自定义组件（AppCards / flink 单标签）在 Live Preview 里也做静态转换；
+    // 多行的 Gallery/flink 容器由 Reading 模式完整渲染。
+    div.innerHTML = sanitizeHtml(transformWikiComponents(this.html));
     div.addEventListener('mousedown', (e) => {
       const a = (e.target as HTMLElement).closest('a');
       if (!a) return;
