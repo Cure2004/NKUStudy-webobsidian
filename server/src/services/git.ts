@@ -460,10 +460,13 @@ async function stagePaths(g: SimpleGit, paths: string[]): Promise<void> {
 }
 
 /**
- * Build a human-readable commit message from what was staged, so the vault
- * history (and the Version History UI) shows exactly which notes synced instead
- * of a generic "WebObsidian auto-sync". Returns a one-line subject that names
- * the notes plus a body listing every changed path grouped by kind.
+ * Build a commit message from what was staged, so the vault history (and the
+ * Version History UI) shows exactly which notes synced instead of a generic
+ * "WebObsidian auto-sync". Returns a one-line subject that names the notes plus
+ * a body listing every changed path grouped by kind.
+ *
+ * 主题行必须符合 Wiki 仓库 CI 的「中文前缀: 详细说明」规范（无消息提交时也
+ * 不能产生英文兜底信息，否则 PR 检查会失败）。
  */
 export function describeChanges(st: StatusResult): { subject: string; body: string } {
   const added: string[] = [];
@@ -486,22 +489,26 @@ export function describeChanges(st: StatusResult): { subject: string; body: stri
   // Display name: basename without the .md extension (notes read best that way).
   const name = (p: string) => (p.split('/').pop() || p).replace(/\.md$/i, '');
 
+  // 根据改动类型选一个合规的中文前缀（见 commitTemplate.ts 的 COMMIT_PREFIXES）。
+  const pickPrefix = (): string => {
+    if (total === 0) return '修订';
+    if (added.length === total) return '新增';
+    if (deleted.length === total) return '移除';
+    if (renamed.length === total) return '调整';
+    return '修订';
+  };
+
   let subject: string;
   if (total === 0) {
-    subject = 'Vault sync';
+    subject = '修订: 同步知识库';
   } else if (total === 1) {
-    const verb = added.length ? 'Add' : deleted.length ? 'Delete' : renamed.length ? 'Rename' : 'Update';
-    subject = `${verb} ${name(all[0])}`;
+    // CI 要求冒号后描述至少 2 个字符；文件名过短时补足。
+    const n = name(all[0]);
+    subject = `${pickPrefix()}: ${n.length >= 2 ? n : `笔记 ${n}`}`;
   } else {
-    const counts = [
-      added.length && `${added.length} new`,
-      modified.length && `${modified.length} edited`,
-      deleted.length && `${deleted.length} deleted`,
-      renamed.length && `${renamed.length} renamed`,
-    ].filter(Boolean).join(', ');
-    const names = all.slice(0, 3).map(name).join(', ');
-    const more = total > 3 ? ` +${total - 3} more` : '';
-    subject = `Sync ${total} notes (${counts}): ${names}${more}`;
+    const names = all.slice(0, 3).map(name).join('、');
+    const more = total > 3 ? ` 等 ${total} 篇` : '';
+    subject = `${pickPrefix()}: 同步 ${total} 篇笔记（${names}${more}）`;
   }
   // Keep the subject a sane git title length.
   if (subject.length > 72) subject = subject.slice(0, 71) + '…';
@@ -510,14 +517,14 @@ export function describeChanges(st: StatusResult): { subject: string; body: stri
     if (!arr.length) return '';
     const CAP = 100;
     const lines = arr.slice(0, CAP).map((p) => `  ${p}`);
-    if (arr.length > CAP) lines.push(`  …and ${arr.length - CAP} more`);
-    return `${label} (${arr.length}):\n${lines.join('\n')}`;
+    if (arr.length > CAP) lines.push(`  …以及另外 ${arr.length - CAP} 个`);
+    return `${label}（${arr.length}）：\n${lines.join('\n')}`;
   };
   const body = [
-    section('Added', added),
-    section('Modified', modified),
-    section('Deleted', deleted),
-    section('Renamed', renamed),
+    section('新增', added),
+    section('修改', modified),
+    section('删除', deleted),
+    section('重命名', renamed),
   ].filter(Boolean).join('\n\n');
 
   return { subject, body };
