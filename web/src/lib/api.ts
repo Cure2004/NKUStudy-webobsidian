@@ -231,6 +231,9 @@ export const api = {
       body: JSON.stringify({ prefix, description, paths }),
     }),
   gitPush: () => req<{ message: string }>('/api/git/push', { method: 'POST' }),
+  // 手动让编辑分支跟进主分支（baseBranch → editBranch）。仅 owner。
+  gitFollowBase: () =>
+    req<{ ok: boolean; merged: boolean; log: string[] }>('/api/git/follow-base', { method: 'POST' }),
   gitSync: (message?: string) =>
     req<{ ok: boolean; log: string[] }>('/api/git/sync', { method: 'POST', body: JSON.stringify({ message }) }),
   gitSyncTemplate: (prefix: string, description: string, paths?: string[]) =>

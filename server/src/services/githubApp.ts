@@ -168,6 +168,66 @@ export async function createOrGetPullRequest(opts: {
   return { number: pr.number, html_url: pr.html_url, created: true };
 }
 
+/**
+ * 查询某个 head 分支是否已有开放的 Pull Request（不限 base）。
+ * 用于「编辑分支有未合并 PR 时暂停跟进主分支」的判断。
+ * GitHub App 未配置时返回 null，调用方据此决定是否跳过检查。
+ */
+export async function findOpenPullRequest(opts: {
+  owner: string;
+  repo: string;
+  head: string;
+}): Promise<{ number: number; html_url: string; base: string } | null> {
+  if (!(await isGithubAppConfigured())) return null;
+  const token = await getInstallationToken();
+  const api = `https://api.github.com/repos/${opts.owner}/${opts.repo}/pulls`;
+  const q = `?state=open&head=${encodeURIComponent(`${opts.owner}:${opts.head}`)}`;
+  const res = await fetch(api + q, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'QUTWiKi-Editor',
+    },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`查询 PR 失败：${res.status} ${body.slice(0, 300)}`);
+  }
+  const list = (await res.json()) as Array<{ number: number; html_url: string; base?: { ref?: string } }>;
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return { number: list[0].number, html_url: list[0].html_url, base: list[0].base?.ref ?? '' };
+}
+
+/**
+ * 触发一个 GitHub Actions 工作流（workflow_dispatch）。
+ * 用于在「Actions 空窗期」由编辑器主动触发 web-edit 跟进主分支的同步工作流。
+ * 需要 GitHub App 具备 **Actions: Read and write** 权限；未授予时会抛错，
+ * 调用方应回退到本地合并。
+ */
+export async function dispatchWorkflow(opts: {
+  owner: string;
+  repo: string;
+  workflow: string;
+  ref: string;
+}): Promise<void> {
+  const token = await getInstallationToken();
+  const url = `https://api.github.com/repos/${opts.owner}/${opts.repo}/actions/workflows/${encodeURIComponent(opts.workflow)}/dispatches`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'QUTWiKi-Editor',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ref: opts.ref }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`触发同步工作流失败：${res.status} ${body.slice(0, 300)}`);
+  }
+}
+
 /** 用 installation token 拼出带鉴权的 https 远程地址。 */
 export async function authedRemoteWithApp(remote: string): Promise<string | null> {
   if (!(await isGithubAppConfigured())) return null;

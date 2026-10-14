@@ -12,11 +12,22 @@ changes. The format is loosely based on [Keep a Changelog](https://keepachangelo
   CI workflow (typecheck, build, Docker image).
 - File tree **Copy / Cut / Paste** for files and folders (session-local clipboard;
   `POST /api/files/copy` for recursive copy). *(PRD 0.9)*
+- **Edit-branch auto-follow** (`github.autoFollowBase`): periodically merge the base branch
+  (`contribute`) into the edit branch (`web-edit`) when no PR is open, keeping online edits
+  based on the latest main branch. A pre-submit check blocks a new submission while a PR is
+  still unmerged, and during GitHub Actions gaps it dispatches `sync-web-edit.yml` (falling
+  back to a local merge when the App lacks Actions permission). Owner-only manual trigger
+  `POST /api/git/follow-base`.
 
 ### Changed
 - ⋯ **More options** menu rebuilt for parity with Obsidian Desktop: backlinks-in-document,
   open linked view, open in new window, add file property, in-note Find, export to PDF,
   reveal file in navigation, and per-file version history. *(PRD 0.8)*
+
+### Fixed
+- Container healthcheck now probes `http://127.0.0.1:8787/healthz` instead of `localhost`.
+  Inside the container `localhost` resolves to IPv6 `::1` while the server binds IPv4 only,
+  so the check failed and the container was reported **unhealthy** despite serving fine.
 
 ## Highlights by PRD revision
 

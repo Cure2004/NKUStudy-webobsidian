@@ -121,6 +121,17 @@ gitRouter.post(
 
 gitRouter.get('/status', requireOwner, asyncHandler(async (_req, res) => res.json(await git.status())));
 
+// 手动让编辑分支跟进主分支（baseBranch → editBranch）。仅 owner。
+gitRouter.post(
+  '/follow-base',
+  requireOwner,
+  asyncHandler(async (_req, res) => {
+    const result = await git.followBase();
+    console.log('[git] follow-base:', result.log.join(' | '));
+    res.json(result);
+  }),
+);
+
 gitRouter.get(
   '/github-app',
   requireOwner,

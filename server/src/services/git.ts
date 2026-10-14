@@ -7,6 +7,8 @@ import { redactUrlCreds } from '../lib/redact.js';
 import {
   authedRemoteWithApp,
   createOrGetPullRequest,
+  dispatchWorkflow,
+  findOpenPullRequest,
   isGithubAppConfigured,
   parseGithubRemote,
 } from './githubApp.js';
@@ -595,6 +597,181 @@ export async function openPullRequest(opts?: {
   return createOrGetPullRequest({ owner, repo, title, body, head, base });
 }
 
+/** 解析远程仓库的 owner/repo（settings.github 优先，回退解析 remote URL）。 */
+async function resolveRepoRef(): Promise<{ owner: string; repo: string }> {
+  const s = await getSettings();
+  const parsed = parseGithubRemote(s.git.remote.trim());
+  return { owner: s.github.owner || parsed?.owner || '', repo: s.github.repo || parsed?.repo || '' };
+}
+
+/** 查询编辑分支是否存在未合并的 PR；无法判断（App 未配置）时返回 null。 */
+async function openPrForEdit(): Promise<{ number: number; html_url: string; base: string } | null> {
+  const { owner, repo } = await resolveRepoRef();
+  if (!owner || !repo || !(await isGithubAppConfigured())) return null;
+  return findOpenPullRequest({ owner, repo, head: await editBranch() });
+}
+
+/**
+ * 编辑分支是否已包含主分支（即不落后）。
+ * 注意：不能用 `git merge-base --is-ancestor`——simple-git 的 raw() 在该命令以
+ * 退出码 1（非祖先）结束时仍会 resolve，导致误判。改用 `rev-list --count`：
+ * `<editRef>..<baseRef>` 为主分支有、编辑分支没有的提交数，为 0 即已包含。
+ */
+async function editContainsBase(g: SimpleGit, baseRef: string, editRef: string): Promise<boolean> {
+  const out = await g.raw(['rev-list', '--count', `${editRef}..${baseRef}`]).catch(() => '1');
+  return Number(out.trim()) === 0;
+}
+
+/**
+ * 把主分支合并进本地编辑分支并推送（假定已确认需要合并）。
+ * --autostash：访客可能正在编辑（工作区有未提交改动），先临时 stash 再合并，合并后自动恢复。
+ */
+async function mergeBaseIntoEdit(
+  g: SimpleGit,
+  baseRef: string,
+  edit: string,
+): Promise<{ ok: boolean; log: string[] }> {
+  // 确保本地在编辑分支上，且与远端一致（无本地独有提交时快进）。
+  const st = await g.status();
+  if (st.current !== edit) await g.checkout(edit).catch(() => {});
+  await g.raw(['merge', '--ff-only', `origin/${edit}`]).catch(() => {});
+
+  try {
+    await g.merge([baseRef, '--no-edit', '--autostash']);
+  } catch {
+    // 合并冲突：能自动解决的生成文件冲突就解决，否则中止并报告。
+    if (await resolveNoiseConflicts(g)) {
+      await g.raw(['commit', '--no-edit']).catch(() => {});
+    } else {
+      const cst = await g.status();
+      await g.raw(['merge', '--abort']).catch(() => {});
+      return { ok: false, log: [`合并主分支产生冲突，已中止：${cst.conflicted.join(', ')}`] };
+    }
+  }
+
+  try {
+    await g.push('origin', `HEAD:refs/heads/${edit}`);
+  } catch (e: any) {
+    return { ok: false, log: [`推送失败：${redactUrlCreds(e.message)}`] };
+  }
+  return { ok: true, log: [`已合并主分支 ${baseRef.replace(/^origin\//, '')} → ${edit}`] };
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * 投稿前的分支状态检查：确保编辑分支基于最新的主分支。
+ *
+ * - 编辑分支有未合并 PR：上一批编辑仍在审核，提示等待维护者合并，本次中止；
+ * - 编辑分支落后主分支（Actions 空窗期）：优先触发 GitHub Actions 同步工作流并
+ *   轮询等待追平；无法触发（App 无 Actions 权限）或超时则本地合并主分支兜底。
+ *
+ * 返回 { blocked: true } 表示应中止本次投稿。
+ */
+async function preSyncCheck(g: SimpleGit, s: Awaited<ReturnType<typeof getSettings>>): Promise<{ blocked: boolean; log: string[] }> {
+  const log: string[] = [];
+  const edit = await editBranch();
+  const base = (s.github.baseBranch || s.git.branch || 'contribute').trim();
+  if (!base || base === edit) return { blocked: false, log };
+
+  const { owner, repo } = await resolveRepoRef();
+  const appReady = owner && repo && (await isGithubAppConfigured());
+
+  // 1) 有未合并 PR → 等待维护者合并。
+  if (appReady) {
+    try {
+      const pr = await findOpenPullRequest({ owner, repo, head: edit });
+      if (pr) {
+        return {
+          blocked: true,
+          log: [`编辑分支已有未合并的 PR #${pr.number}（${pr.html_url}），请等待维护者合并后再提交`],
+        };
+      }
+    } catch (e: any) {
+      log.push(`检查 PR 状态失败（继续）：${redactUrlCreds(e.message)}`);
+    }
+  }
+
+  // 2) 编辑分支是否落后主分支。
+  await g.raw(['fetch', 'origin', base, edit]).catch(() => {});
+  const baseRef = `origin/${base}`;
+  if (await editContainsBase(g, baseRef, `origin/${edit}`)) return { blocked: false, log }; // 已最新
+
+  // 空窗期：优先触发 Actions 同步工作流（若 App 有 Actions 权限）。
+  if (appReady) {
+    try {
+      await dispatchWorkflow({ owner, repo, workflow: 'sync-web-edit.yml', ref: base });
+      log.push('已触发 GitHub Actions 同步工作流，等待编辑分支跟进主分支…');
+      for (let i = 0; i < 6; i++) {
+        await sleep(5000);
+        await g.raw(['fetch', 'origin', edit]).catch(() => {});
+        if (await editContainsBase(g, baseRef, `origin/${edit}`)) {
+          log.push('编辑分支已跟进主分支');
+          return { blocked: false, log };
+        }
+      }
+      log.push('工作流未在预期时间内完成，改为本地同步');
+    } catch (e: any) {
+      log.push(`触发同步工作流失败，改为本地同步：${redactUrlCreds(e.message)}`);
+    }
+  }
+
+  // 兜底：本地合并主分支（此时 Actions 若已结束则不会与其竞争）。
+  const res = await mergeBaseIntoEdit(g, baseRef, edit);
+  log.push(...res.log);
+  return { blocked: false, log };
+}
+
+/**
+ * 让编辑分支自动跟进主分支（定时任务调用）：把 baseBranch（如 contribute）合并进
+ * editBranch（如 web-edit），使在线编辑器始终基于最新的主分支内容。
+ *
+ * 规则：
+ * - 编辑分支存在**未合并的 PR** 时暂停跟进，避免把待审核的编辑内容与主分支改动混在一起；
+ * - 主分支已是编辑分支的祖先时（无新提交）直接跳过；
+ * - 合并通常是快进（fast-forward），不会产生多余的合并提交。
+ */
+async function followBaseImpl(): Promise<{ ok: boolean; merged: boolean; log: string[] }> {
+  const log: string[] = [];
+  const s = await getSettings();
+  const g = await git();
+  if (!(await isRepo(g))) return { ok: true, merged: false, log: ['非 git 仓库，跳过'] };
+
+  const edit = await editBranch();
+  const base = (s.github.baseBranch || s.git.branch || 'contribute').trim();
+  if (!base || base === edit) return { ok: true, merged: false, log: ['主分支与编辑分支相同，跳过'] };
+
+  const remote = await authedRemote();
+  if (remote) await g.remote(['set-url', 'origin', remote]);
+
+  // 有未合并 PR → 暂停跟进。
+  try {
+    const pr = await openPrForEdit();
+    if (pr) {
+      return { ok: true, merged: false, log: [`编辑分支存在未合并 PR #${pr.number}，暂停跟进主分支`] };
+    }
+  } catch (e: any) {
+    // 查询失败（网络/权限）时保守跳过，避免误合并。
+    return { ok: false, merged: false, log: [`检查 PR 失败，跳过跟进：${redactUrlCreds(e.message)}`] };
+  }
+
+  // 拉取主分支与编辑分支的最新引用。
+  await g.raw(['fetch', 'origin', base, edit]).catch(() => {});
+  const baseRef = `origin/${base}`;
+
+  // 主分支已是编辑分支祖先 → 无新提交。
+  if (await editContainsBase(g, baseRef, `origin/${edit}`)) {
+    return { ok: true, merged: false, log: ['编辑分支已包含主分支最新提交，无需跟进'] };
+  }
+
+  const res = await mergeBaseIntoEdit(g, baseRef, edit);
+  return { ok: res.ok, merged: res.ok, log: res.log };
+}
+
+/** 公开的、串行化的「跟进主分支」操作（与其它 git 操作共用队列）。 */
+export const followBase = (): Promise<{ ok: boolean; merged: boolean; log: string[] }> =>
+  withGitLock(followBaseImpl);
+
 // Debounced auto-commit (+push) after saves, when enabled in settings.
 let autoCommitTimer: NodeJS.Timeout | null = null;
 export function scheduleAutoCommitOnSave(): void {
@@ -669,6 +846,14 @@ async function syncImpl(
   }
   await recoverMerge(g); // unwedge a prior stuck merge before doing anything
   log.push(await commitAllImpl(message || '', paths));
+
+  // 投稿前检查：编辑分支必须基于最新主分支。若已有未合并 PR 则中止本次投稿；
+  // 若处于 Actions 空窗期则触发同步工作流（或本地合并）先行跟进。
+  const s = await getSettings();
+  const pre = await preSyncCheck(g, s);
+  if (pre.log.length) log.push(...pre.log);
+  if (pre.blocked) return { ok: false, log };
+
   try {
     log.push(await pullImpl());
   } catch (e: any) {
@@ -693,7 +878,6 @@ async function syncImpl(
   }
   // 推送成功后，如启用 GitHub App 且开启自动 PR，则为 web-edit → base 创建/复用 PR。
   try {
-    const s = await getSettings();
     if (s.github.autoPullRequest && (await isGithubAppConfigured())) {
       const pr = await openPullRequest();
       log.push(pr.created ? `已创建 PR #${pr.number}：${pr.html_url}` : `已复用现有 PR #${pr.number}：${pr.html_url}`);

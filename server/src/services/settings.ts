@@ -80,6 +80,12 @@ const SettingsSchema = z.object({
       baseBranch: z.string().default('contribute'),
       // 是否自动为 web-edit 分支创建/更新 PR。
       autoPullRequest: z.boolean().default(true),
+      // 是否让编辑分支自动跟进主分支（baseBranch → editBranch）。
+      // 开启后，若编辑分支没有未合并的 PR，则定期把主分支合并进编辑分支，
+      // 使在线编辑器始终基于最新的主分支内容。
+      autoFollowBase: z.boolean().default(true),
+      // 跟进主分支的检查间隔（秒），最小 60。
+      followIntervalSec: z.number().default(300),
     })
     .default({}),
   // 图片上传（PicList-Core 图床）。

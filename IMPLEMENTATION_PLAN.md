@@ -4,7 +4,7 @@
 > Quy ước: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 > Cập nhật file này **mỗi khi** một mục thay đổi trạng thái.
 
-Cập nhật lần cuối: 2026-06-27 (security fix — chặn leo thang quyền token share; merge fix F-03 rate-limit, giữ `trust proxy` mặc định bật)
+Cập nhật lần cuối: 2026-10-08 (QUT fork — 编辑分支自动跟进主分支 + 投稿前分支检查)
 
 ---
 
@@ -87,6 +87,7 @@ Cập nhật lần cuối: 2026-06-27 (security fix — chặn leo thang quyền
 - [x] M10.1 Multi-stage `Dockerfile` (web build → server runtime, git+git-lfs)
 - [x] M10.2 `docker-compose.yml` (vault + data volumes, env secrets, healthcheck)
 - [x] M10.3 `README.md` quickstart + `docs/AGENT_API.md`
+- [~] M10.5 根据 QUT fork 的 Git 历史重写中文 README，覆盖部署、目录配置、GitHub App 投稿、公开编辑及图床，并核验文档链接与示例。
 - [x] M10.4 Deploy hardening cho self-host: compose `.env`-driven (`VAULT_HOST_PATH`,
   `HTTP_BIND/HTTP_PORT`, `WEBOBSIDIAN_WATCH`) → không clobber khi redeploy; watcher tự
   fallback polling khi inotify `ENOSPC/EMFILE`; `start_period=90s`; README mục Deploy-to-VPS
@@ -430,6 +431,17 @@ Cập nhật lần cuối: 2026-06-27 (security fix — chặn leo thang quyền
       `desktop/release`.
 
 ### Nhật ký tiến độ
+- 2026-10-08（修复容器健康检查）：健康检查地址由 `http://localhost:8787/healthz` 改为
+  `http://127.0.0.1:8787/healthz`。容器内 `localhost` 解析为 IPv6 `::1`，而服务只监听 IPv4
+  `0.0.0.0`，导致健康检查连接被拒、容器被标记 unhealthy（实际服务正常）。改 Dockerfile 与
+  docker-compose.yml。
+- 2026-10-08（编辑分支自动跟进主分支）：新增 `github.autoFollowBase` / `followIntervalSec`；`git.ts` 抽出
+  `preSyncCheck`（投稿前检查：有未合并 PR → 中止并提示等待维护者；Actions 空窗期 → 触发 `sync-web-edit.yml`
+  并轮询，失败/超时回退本地合并）、`followBase`（定时/手动把 `baseBranch` 合并进 `editBranch`，无 PR 时执行）；
+  新增 `services/basefollow.ts` 调度器、`POST /api/git/follow-base`（owner）、`githubApp.ts` 的
+  `findOpenPullRequest` / `dispatchWorkflow`；Settings 增加开关与「立即跟进主分支」；更新 GITHUB_APP.md。
+  typecheck + build 通过。
+- 2026-10-06（开始 M10.5）：核对 `origin/main..HEAD` 的 28 个提交及当前实现，开始重写 QUT WiKi 定制版 README；以代码校正分支默认值与访客权限说明。
 - 2026-06-27 (security fix — leo thang quyền qua token share): `verifyToken()` (server/src/services/auth.ts)
   chỉ kiểm tra chữ ký nên **mọi** token ký bằng `auth.jwtSecret` đều được chấp nhận như phiên owner. Endpoint
   public `POST /public/shares/:id/unlock` ký unlock-cookie bằng cùng secret → người được chia sẻ (có mật khẩu

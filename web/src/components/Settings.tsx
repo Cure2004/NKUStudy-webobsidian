@@ -303,6 +303,16 @@ function GitHubAppSettings({
     }
   };
 
+  const followBase = async () => {
+    append([t('正在跟进主分支…')]);
+    try {
+      const r = await api.gitFollowBase();
+      append(r.log.length ? r.log : [r.merged ? t('已跟进主分支') : t('无需跟进')]);
+    } catch (e: any) {
+      append([t('Error: {msg}', { msg: e.message })]);
+    }
+  };
+
   return (
     <div style={{ marginTop: 24, borderTop: '1px solid var(--bg-modifier-border)', paddingTop: 12 }}>
       <h2>{t('GitHub App（在线编辑）')}</h2>
@@ -338,9 +348,26 @@ function GitHubAppSettings({
       <Row name={t('自动创建 PR')} desc={t('推送成功后自动为编辑分支创建/复用 Pull Request')}>
         <input type="checkbox" checked={!!gh.autoPullRequest} onChange={(e) => set('autoPullRequest', e.target.checked)} />
       </Row>
+      <Row
+        name={t('自动跟进主分支')}
+        desc={t('编辑分支无未合并 PR 时，定期把主分支合并进编辑分支，保持在线编辑基于最新内容')}
+      >
+        <input type="checkbox" checked={!!gh.autoFollowBase} onChange={(e) => set('autoFollowBase', e.target.checked)} />
+      </Row>
+      <Row name={t('跟进间隔（秒）')} desc={t('检查并跟进主分支的间隔，最小 60 秒')}>
+        <input
+          className="text-input"
+          style={{ width: 120 }}
+          type="number"
+          min={60}
+          value={gh.followIntervalSec ?? 300}
+          onChange={(e) => set('followIntervalSec', Number(e.target.value) || 300)}
+        />
+      </Row>
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <button className="btn" onClick={save}>{t('Save')}</button>
         <button className="btn secondary" onClick={testPr}>{t('测试：创建 PR')}</button>
+        <button className="btn secondary" onClick={followBase}>{t('立即跟进主分支')}</button>
       </div>
     </div>
   );

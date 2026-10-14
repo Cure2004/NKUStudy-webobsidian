@@ -75,9 +75,12 @@ git push -u origin web-edit
 |--------|--------|------|
 | **Contents** | **Read and write** | 读取仓库、推送 `web-edit` 分支 |
 | **Pull requests** | **Read and write** | 创建 / 查询 Pull Request |
+| **Actions** | **Read and write** | 投稿前触发 `sync-web-edit.yml` 让编辑分支跟进主分支（可选，见下） |
 | **Metadata** | **Read-only** | 创建 App 时 GitHub 自动勾选，无法取消，属正常 |
 
-其余权限（Actions、Administration、Issues、Workflows 等）一律保持 **No access**，遵循最小权限原则。
+其余权限（Administration、Issues、Workflows 等）一律保持 **No access**，遵循最小权限原则。
+
+> **关于 Actions 权限**：编辑器在投稿前会检查编辑分支是否已跟进主分支。若处于 GitHub Actions 的调度空窗期（主分支刚有新提交、同步工作流还没跑），编辑器会主动触发 `sync-web-edit.yml` 并等待其完成。这需要 **Actions: Read and write**。若你不想授予该权限，编辑器会自动回退为「本地合并主分支」兜底，功能不受影响，只是少了一层「让 Actions 统一处理」的优雅。
 
 > Organization permissions 全部保持 **No access**。
 
@@ -160,11 +163,27 @@ git push -u origin web-edit
     "owner": "QUT-Lib",
     "repo": "QUT-WiKi",
     "editBranch": "web-edit",
-    "baseBranch": "web-edit",
-    "autoPullRequest": true
+    "baseBranch": "contribute",
+    "autoPullRequest": true,
+    "autoFollowBase": true,
+    "followIntervalSec": 300
   }
 }
 ```
+
+> QUT WiKi 的实际部署中，`editBranch = web-edit`（在线编辑推送分支）、`baseBranch = contribute`（PR 目标分支，也是站点主分支）。
+
+### 3.1 编辑分支自动跟进主分支
+
+在线编辑的改动进入 `web-edit`，由维护者审核后合并进 `contribute`。为防止 `web-edit` 长期落后于 `contribute` 导致 PR 历史分叉、冲突，编辑器提供了「自动跟进主分支」：
+
+- **定时跟进**：`autoFollowBase = true` 时，每 `followIntervalSec` 秒检查一次；若 `web-edit` **没有未合并的 PR**，就把 `contribute` 合并进 `web-edit`（通常是快进，历史保持线性）。
+- **投稿前检查**：用户点击「提交并推送（创建 PR）」时，会先检查 `web-edit` 是否已基于最新 `contribute`：
+  1. 若 `web-edit` 上**已有未合并的 PR**（上一批编辑还在审核），则中止本次提交并提示「请等待维护者合并上一个 PR」；
+  2. 若处于 GitHub Actions 的**调度空窗期**（`contribute` 刚有新提交、同步工作流尚未运行），编辑器会主动触发 `sync-web-edit.yml` 并等待其完成；若 App 未授予 Actions 权限或超时，则回退为**本地合并** `contribute` 兜底。
+- **手动触发**：在 GitHub App 设置区点击「立即跟进主分支」可随时执行一次。
+
+这样，`web-edit` 在无待审 PR 时始终等于 `contribute`，PR 合并即为快进/单父提交，历史干净；有待审 PR 时才短暂分叉，且该分叉有界（合并后立即对齐）。
 
 ---
 
@@ -175,7 +194,7 @@ git push -u origin web-edit
    - Linux / macOS：`chmod 600 data/settings.json`，并确保运行服务的用户独占读写。
    - Windows：仅授予服务运行账号读取权限（右键文件 → 属性 → 安全 → 移除其他用户）。
 3. **环境变量覆盖**：生产环境可用环境变量注入敏感值，避免明文落盘（例如通过 Docker secrets / 环境变量把私钥传给服务）。本项目的 `data/settings.json` 由 `DATA_DIR` 决定位置（默认 `./data`），部署时请把 `data/` 放在持久化且受控的目录。
-4. **最小权限**：App 只授予 Contents / Pull requests 写权限，安装范围只选 `QUT-WiKi` 一个仓库。
+4. **最小权限**：App 只授予 Contents / Pull requests（如需编辑器主动触发同步工作流再加 Actions）写权限，安装范围只选 `QUT-WiKi` 一个仓库。
 5. **可随时吊销**：若怀疑泄露，立即到 App 设置页 **Delete private key** 并重新生成，或直接 **Suspend / Uninstall** 该 App；随后在编辑器里更新私钥。
 6. **备份**：私钥文件应离线备份到密码管理器，不要放在公开云盘。
 
@@ -240,6 +259,16 @@ git push -u origin web-edit
 - 确认「自动创建 PR」已勾选。
 - 若 `head` 与 `base` 分支内容完全相同，GitHub 不会创建 PR（`No commits between web-edit and web-edit`）——这是正常的，说明没有新改动。
 
+### 6.8 投稿时提示「请等待维护者合并上一个 PR」
+
+- 说明 `web-edit` 上已有一个**未合并**的 PR，上一批在线编辑仍在审核中。这是**有意的暂停**：避免把新编辑混进正在审核的 PR。
+- 处理：等待维护者合并（或关闭）该 PR 后再次提交即可；合并后编辑器会自动把 `web-edit` 对齐到 `contribute`。
+
+### 6.9 触发同步工作流失败 / 编辑分支未及时跟进
+
+- 若 App 未授予 **Actions: Read and write**，编辑器触发 `sync-web-edit.yml` 会失败，此时会**自动回退为本地合并** `contribute`，投稿仍可正常完成（日志会显示「改为本地同步」）。
+- 若希望由 Actions 统一处理，请在 App 设置中补上 Actions 权限并重新批准安装。
+
 ---
 
 ## 7. 公开编辑模式（访客免密投稿）
@@ -298,4 +327,6 @@ git push -u origin web-edit
 | owner | 仓库所属 | `QUT-Lib` |
 | repo | 仓库名 | `QUT-WiKi` |
 | editBranch | 推送分支（需已存在） | `web-edit` |
-| baseBranch | PR 目标分支（需已存在） | `web-edit` |
+| baseBranch | PR 目标分支（需已存在） | `contribute` |
+| autoFollowBase | 无未合并 PR 时自动跟进主分支 | `true` |
+| followIntervalSec | 跟进检查间隔（秒） | `300` |
