@@ -1,0 +1,210 @@
+TAP version 13
+# Subtest: GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+ok 1 - GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+  ---
+  duration_ms: 283.216083
+  type: 'test'
+  ...
+# Subtest: GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+not ok 2 - GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+  ---
+  duration_ms: 286.1985
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:5598'
+  failureType: 'testCodeFailure'
+  error: |-
+    fatal: ../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-2/content/allowed/note.md: '../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-2/content/allowed/note.md' is outside repository at '/private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-2'
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    createGitError (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:32:14)
+    Object.action (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:52:23)
+    ro.exec (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/plugin-store.ts:56:29)
+    <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:125:42)
+    new Promise (<anonymous>)
+    Pn.handleTaskData (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:122:14)
+    Pn.attemptRemoteTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:98:40)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Pn.attemptTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:62:18)
+  ...
+# Subtest: GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+ok 3 - GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+  ---
+  duration_ms: 530.804708
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# Subtest: GIT-03 absent/empty/invalid guest paths never become full-repo writes
+ok 4 - GIT-03 absent/empty/invalid guest paths never become full-repo writes
+  ---
+  duration_ms: 271.371083
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [error] fatal: ../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-5/content/allowed/note.md: '../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-5/content/allowed/note.md' is outside repository at '/private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-5'
+#  
+# Error: fatal: ../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-5/content/allowed/note.md: '../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-5/content/allowed/note.md' is outside repository at '/private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-5'
+#     at createGitError (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:32:14)
+#     at Object.action (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:52:23)
+#     at ro.exec (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/plugin-store.ts:56:29)
+#     at <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:125:42)
+#     at new Promise (<anonymous>)
+#     at Pn.handleTaskData (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:122:14)
+#     at Pn.attemptRemoteTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:98:40)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async Pn.attemptTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:62:18)
+# Subtest: GIT-04 owner sync uses configured custom branch and preserves review ref
+not ok 5 - GIT-04 owner sync uses configured custom branch and preserves review ref
+  ---
+  duration_ms: 465.337292
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:8046'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    500 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 500
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:92:92)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+ok 6 - GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+  ---
+  duration_ms: 281.433708
+  type: 'test'
+  ...
+# Subtest: GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+ok 7 - GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+  ---
+  duration_ms: 228.644708
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [error] fatal: ../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-8/content/allowed/note.md: '../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-8/content/allowed/note.md' is outside repository at '/private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-8'
+#  
+# Error: fatal: ../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-8/content/allowed/note.md: '../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-8/content/allowed/note.md' is outside repository at '/private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-8'
+#     at createGitError (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:32:14)
+#     at Object.action (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:52:23)
+#     at ro.exec (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/plugin-store.ts:56:29)
+#     at <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:125:42)
+#     at new Promise (<anonymous>)
+#     at Pn.handleTaskData (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:122:14)
+#     at Pn.attemptRemoteTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:98:40)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async Pn.attemptTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:62:18)
+# Subtest: GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+not ok 8 - GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+  ---
+  duration_ms: 455.536375
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:12563'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    500 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 500
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:134:174)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+not ok 9 - GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+  ---
+  duration_ms: 774.297375
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:13174'
+  failureType: 'testCodeFailure'
+  error: |-
+    fatal: ../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-10/content/allowed/note.md: '../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-10/content/allowed/note.md' is outside repository at '/private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-10'
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    createGitError (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:32:14)
+    Object.action (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:52:23)
+    ro.exec (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/plugin-store.ts:56:29)
+    <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:125:42)
+    new Promise (<anonymous>)
+    Pn.handleTaskData (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:122:14)
+    Pn.attemptRemoteTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:98:40)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Pn.attemptTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:62:18)
+  ...
+# Subtest: GIT-07 behind base and conflicts stop before commit and preserve local draft
+ok 10 - GIT-07 behind base and conflicts stop before commit and preserve local draft
+  ---
+  duration_ms: 446.3525
+  type: 'test'
+  ...
+# Subtest: GIT-08 old external lock is retained and concurrent app operations serialize
+not ok 11 - GIT-08 old external lock is retained and concurrent app operations serialize
+  ---
+  duration_ms: 358.637625
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:15095'
+  failureType: 'testCodeFailure'
+  error: |-
+    fatal: ../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-12/content/allowed/note.md: '../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-12/content/allowed/note.md' is outside repository at '/private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-12'
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    createGitError (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:32:14)
+    Object.action (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:52:23)
+    ro.exec (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/plugin-store.ts:56:29)
+    <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:125:42)
+    new Promise (<anonymous>)
+    Pn.handleTaskData (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:122:14)
+    Pn.attemptRemoteTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:98:40)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Pn.attemptTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:62:18)
+  ...
+# Subtest: GIT-09 explicit rename/delete and small binary preserve selected tree only
+not ok 12 - GIT-09 explicit rename/delete and small binary preserve selected tree only
+  ---
+  duration_ms: 405.361333
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:15939'
+  failureType: 'testCodeFailure'
+  error: |-
+    fatal: ../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-13/content/allowed/note.md: '../../../../../../../private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-13/content/allowed/note.md' is outside repository at '/private/var/folders/jk/9hwyhsw14617n1xdr7__p0bh0000gn/T/nkustudy-git-GZdO10/repo-13'
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    createGitError (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:32:14)
+    Object.action (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/error-detection.plugin.ts:52:23)
+    ro.exec (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/plugins/plugin-store.ts:56:29)
+    <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:125:42)
+    new Promise (<anonymous>)
+    Pn.handleTaskData (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:122:14)
+    Pn.attemptRemoteTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:98:40)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Pn.attemptTask (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/simple-git/src/lib/runners/git-executor-chain.ts:62:18)
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 6
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5123.967583

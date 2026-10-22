@@ -1,0 +1,19 @@
+{
+  "name": "paths-upload-final",
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "--test-timeout=30000",
+    "server/test/paths.test.ts",
+    "server/test/uploads.test.ts"
+  ],
+  "startedAt": "2026-10-22T09:44:26.567Z",
+  "endedAt": "2026-10-22T09:44:34.681Z",
+  "exitCode": 1,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "paths-upload-final-2026-10-22T09-44-26-567Z.log"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "startup-deadline-recheck",
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "server/test/settings.test.ts"
+  ],
+  "startedAt": "2026-10-22T10:18:28.054Z",
+  "endedAt": "2026-10-22T10:19:19.297Z",
+  "exitCode": 0,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "startup-deadline-recheck-2026-10-22T10-18-28-054Z.log"
+}

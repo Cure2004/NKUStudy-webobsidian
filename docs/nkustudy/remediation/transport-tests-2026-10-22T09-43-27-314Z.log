@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: WEB-01/02 cross-origin JSON and multipart rejected before mutation; same-origin/native allowed
+ok 1 - WEB-01/02 cross-origin JSON and multipart rejected before mutation; same-origin/native allowed
+  ---
+  duration_ms: 23.035666
+  type: 'test'
+  ...
+# Subtest: WS-01 absent/guest/malformed-cookie/cross-origin upgrades rejected
+ok 2 - WS-01 absent/guest/malformed-cookie/cross-origin upgrades rejected
+  ---
+  duration_ms: 4.597084
+  type: 'test'
+  ...
+# Subtest: WS-01 owner receives events; revoked session receives no subsequent event
+ok 3 - WS-01 owner receives events; revoked session receives no subsequent event
+  ---
+  duration_ms: 4.38125
+  type: 'test'
+  ...
+# Subtest: LOG-01 URL credentials and query secrets are redacted
+ok 4 - LOG-01 URL credentials and query secrets are redacted
+  ---
+  duration_ms: 0.146833
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 354.515958

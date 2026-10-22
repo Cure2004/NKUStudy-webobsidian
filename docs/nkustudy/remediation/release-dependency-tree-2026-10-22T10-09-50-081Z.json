@@ -1,0 +1,16 @@
+{
+  "name": "release-dependency-tree",
+  "command": [
+    "npm",
+    "ls",
+    "--omit=dev",
+    "--all"
+  ],
+  "startedAt": "2026-10-22T10:09:50.081Z",
+  "endedAt": "2026-10-22T10:09:54.250Z",
+  "exitCode": 0,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "release-dependency-tree-2026-10-22T10-09-50-081Z.log"
+}

@@ -1,0 +1,12 @@
+
+> webobsidian@0.1.1 typecheck
+> npm --workspace server run typecheck && npm --workspace web run typecheck
+
+
+> @webobsidian/server@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @webobsidian/web@0.1.0 typecheck
+> tsc -b --noEmit
+

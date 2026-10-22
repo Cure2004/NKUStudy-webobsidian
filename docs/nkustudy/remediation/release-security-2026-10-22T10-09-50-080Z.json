@@ -1,0 +1,15 @@
+{
+  "name": "release-security",
+  "command": [
+    "npm",
+    "run",
+    "test:security"
+  ],
+  "startedAt": "2026-10-22T10:09:50.080Z",
+  "endedAt": "2026-10-22T10:18:32.552Z",
+  "exitCode": 1,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "release-security-2026-10-22T10-09-50-080Z.log"
+}

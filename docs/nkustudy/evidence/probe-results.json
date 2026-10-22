@@ -1,0 +1,244 @@
+[
+  {
+    "id": "allowed-write",
+    "status": 200,
+    "path": "allowed/ok.md"
+  },
+  {
+    "id": "direct-denied",
+    "status": 403,
+    "error": "公开编辑仅允许修改指定目录"
+  },
+  {
+    "id": "dotdot-write",
+    "status": 200,
+    "path": "allowed/../private/dotdot.md"
+  },
+  {
+    "id": "outside-content-denied",
+    "status": 400,
+    "error": "Path escapes vault"
+  },
+  {
+    "id": "backslash-linux-literal",
+    "status": 200,
+    "path": "allowed/..\\private\\literal.md"
+  },
+  {
+    "id": "encoded-json-literal",
+    "status": 200,
+    "path": "allowed/%2e%2e/private/literal.md"
+  },
+  {
+    "id": "read-outside-editable",
+    "status": 200,
+    "path": "private/read.md",
+    "content": "PRIVATE-FIXTURE"
+  },
+  {
+    "id": "read-encoded-dotdot",
+    "status": 200,
+    "path": "allowed/../private/read.md",
+    "content": "PRIVATE-FIXTURE"
+  },
+  {
+    "id": "symlink-to-private",
+    "status": 200,
+    "path": "allowed/link/sym.md"
+  },
+  {
+    "id": "symlink-outside-content-denied",
+    "status": 400,
+    "error": "Path escapes vault"
+  },
+  {
+    "id": "rename-bypass",
+    "status": 200
+  },
+  {
+    "id": "copy-bypass",
+    "status": 200
+  },
+  {
+    "id": "delete-encoded-bypass",
+    "status": 200
+  },
+  {
+    "id": "upload-empty-dir",
+    "status": 200,
+    "path": "upload-empty-dir.png"
+  },
+  {
+    "id": "upload-dotdot",
+    "status": 200,
+    "path": "private/upload-dotdot.png"
+  },
+  {
+    "id": "image-derived-target",
+    "status": 200,
+    "path": "attachments/image-derived-target.png"
+  },
+  {
+    "id": "trash-guest-denied",
+    "status": 403,
+    "error": "该操作仅限管理员"
+  },
+  {
+    "id": "closed-anon-denied",
+    "status": 401,
+    "error": "Unauthorized"
+  },
+  {
+    "id": "closed-guest-denied",
+    "status": 401,
+    "error": "Unauthorized"
+  },
+  {
+    "id": "closed-owner-allowed",
+    "status": 200
+  },
+  {
+    "id": "login-wrong-0",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-1",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-2",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-3",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-4",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-5",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-6",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-7",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-8",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-9",
+    "status": 401,
+    "error": "Invalid password"
+  },
+  {
+    "id": "login-wrong-10",
+    "status": 429,
+    "error": "Too many login attempts. Try again later."
+  },
+  {
+    "id": "password-guess-0",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-1",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-2",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-3",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-4",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-5",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-6",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-7",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-8",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-9",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-10",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "password-guess-11",
+    "status": 401,
+    "error": "Current password is incorrect"
+  },
+  {
+    "id": "guest-default-password-change",
+    "status": 200
+  },
+  {
+    "id": "git-show-hash-path-injection",
+    "status": 500,
+    "error": "fatal: path 'outside-content.md:content/ignored' does not exist in 'HEAD'\n"
+  },
+  {
+    "id": "git-empty-paths-commit",
+    "files": [
+      "content/private/git-empty.md",
+      "outside-content.md"
+    ]
+  },
+  {
+    "id": "git-dotdot-path-commit",
+    "files": [
+      "content/private/git-glob.md"
+    ]
+  },
+  {
+    "id": "git-glob-commit",
+    "files": [
+      "content/allowed/dummy.md",
+      "content/allowed/glob.md"
+    ]
+  }
+]

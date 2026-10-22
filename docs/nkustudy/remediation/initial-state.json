@@ -1,0 +1,21 @@
+{
+  "baseline": "e2201591c02ecb96e4d42d6adbd0644f1a15b40a",
+  "branch": "nkustudy-dev",
+  "initialStatus": "?? docs/nkustudy.zip\n?? docs/nkustudy/README.md\n?? docs/nkustudy/acceptance-matrix.md\n?? docs/nkustudy/architecture-audit.md\n?? docs/nkustudy/deployment-plan.md\n?? docs/nkustudy/evidence/.gitignore\n?? docs/nkustudy/evidence/README.md\n?? docs/nkustudy/evidence/SHA256SUMS\n?? docs/nkustudy/evidence/advisory-details.json\n?? docs/nkustudy/evidence/build.log\n?? docs/nkustudy/evidence/marker-results.json\n?? docs/nkustudy/evidence/marker.mts\n?? docs/nkustudy/evidence/probe-results.json\n?? docs/nkustudy/evidence/probe.mts\n?? docs/nkustudy/evidence/server-audit.json\n?? docs/nkustudy/evidence/typecheck.log\n?? docs/nkustudy/evidence/web-audit.json\n?? docs/nkustudy/execution-summary.md\n?? docs/nkustudy/qut-to-nkustudy-config.md\n?? docs/nkustudy/security-audit.md\n",
+  "historicalEvidenceSHA256": {
+    "docs/nkustudy/evidence/web-audit.json": "027ec1071364822ace3c855b03c8192e96b52069e08554c03d22629661e8de5d",
+    "docs/nkustudy/evidence/typecheck.log": "b2558b0b45716e6cd0e64305e99a56f2dbfe89cec15a43435d7d0fe96c1828fa",
+    "docs/nkustudy/evidence/server-audit.json": "3dd832e30e87f4469d14ecf5ab9688b2d71598ed758bfd872729f4f53cb21aa7",
+    "docs/nkustudy/evidence/probe-results.json": "9fbf99bd5281210598607292e1ffe86eeec0fd75e3818880db375689788506d2",
+    "docs/nkustudy/evidence/README.md": "ad1095f9f54fb62aefb5b8bfb3a0a38ba9b28873ef69bff72c4589d741bac980",
+    "docs/nkustudy/evidence/.gitignore": "91f68e810837d76965acecbe49ebad3956e762d2e59ae733ee44751a88d72116",
+    "docs/nkustudy/evidence/advisory-details.json": "8aecbb93760639a3896bade58201be6f1533932ff70b278a8b0c01ac86733630",
+    "docs/nkustudy/evidence/probe.mts": "5932f7d420290300cff9d6841432b25f7d88b559293c4517cbfb313375cf8190",
+    "docs/nkustudy/evidence/marker.mts": "6b24b123db71f70ccfeca28239ebc6568d0f3b469ede3e4540191dae0ed835f9",
+    "docs/nkustudy/evidence/SHA256SUMS": "421676daab519bb4c5df2e6a65259262b1aae088d305a3f95b2398db8e2ebcab",
+    "docs/nkustudy/evidence/build.log": "b5a19e767ea9a0eedbdbffefa1f13f96fab32b7f49e9595cdc40c297dba00fa2",
+    "docs/nkustudy/evidence/marker-results.json": "0943b004984a4851d0e6e7bd9ca78988e7f67fdecdbd26b102630c10713127cc"
+  },
+  "startedAt": "2026-10-22T17:31:04.143677+08:00",
+  "boundary": "Local source/dependency/tests only; no real external writes"
+}

@@ -1,0 +1,356 @@
+[
+  {
+    "id": "PAR-01",
+    "status": "PASS",
+    "evidence": "server/test/markdown.test.ts",
+    "scope": "真实路由/服务解析与正常数据；无害marker"
+  },
+  {
+    "id": "PAR-02",
+    "status": "PASS",
+    "evidence": "server/test/markdown.test.ts",
+    "scope": "真实路由/服务解析与正常数据；无害marker"
+  },
+  {
+    "id": "PATH-01",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-02",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-03",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-04",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-05",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-06",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-07",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-08",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-09",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-10",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "PATH-11",
+    "status": "PASS",
+    "evidence": "server/test/paths.test.ts",
+    "scope": "物理路径、正反例及文件/索引/Git副作用；含合法递归操作"
+  },
+  {
+    "id": "UPL-01",
+    "status": "PASS",
+    "evidence": "server/test/uploads.test.ts",
+    "scope": "小尺寸受控夹具；不是1.6GiB容量或512MiB压力证明"
+  },
+  {
+    "id": "UPL-02",
+    "status": "PASS",
+    "evidence": "server/test/uploads.test.ts",
+    "scope": "小尺寸受控夹具；不是1.6GiB容量或512MiB压力证明"
+  },
+  {
+    "id": "UPL-03",
+    "status": "PASS",
+    "evidence": "server/test/uploads.test.ts",
+    "scope": "小尺寸受控夹具；不是1.6GiB容量或512MiB压力证明"
+  },
+  {
+    "id": "UPL-04",
+    "status": "PASS",
+    "evidence": "server/test/uploads.test.ts",
+    "scope": "小尺寸受控夹具；不是1.6GiB容量或512MiB压力证明"
+  },
+  {
+    "id": "UPL-05",
+    "status": "PASS",
+    "evidence": "server/test/uploads.test.ts",
+    "scope": "小尺寸受控夹具；不是1.6GiB容量或512MiB压力证明"
+  },
+  {
+    "id": "UPL-06",
+    "status": "PASS",
+    "evidence": "server/test/uploads.test.ts",
+    "scope": "小尺寸受控夹具；不是1.6GiB容量或512MiB压力证明"
+  },
+  {
+    "id": "AUTH-01",
+    "status": "PASS",
+    "evidence": "server/test/auth.test.ts; server/test/settings.test.ts",
+    "scope": "真实HTTP/独立子进程；会话/初始化/旧配置"
+  },
+  {
+    "id": "AUTH-02",
+    "status": "PASS",
+    "evidence": "server/test/auth.test.ts; server/test/settings.test.ts",
+    "scope": "真实HTTP/独立子进程；会话/初始化/旧配置"
+  },
+  {
+    "id": "AUTH-03",
+    "status": "PASS",
+    "evidence": "server/test/auth.test.ts; server/test/settings.test.ts",
+    "scope": "真实HTTP/独立子进程；会话/初始化/旧配置"
+  },
+  {
+    "id": "AUTH-04",
+    "status": "PASS",
+    "evidence": "server/test/auth.test.ts; server/test/settings.test.ts",
+    "scope": "真实HTTP/独立子进程；会话/初始化/旧配置"
+  },
+  {
+    "id": "AUTH-05",
+    "status": "PASS",
+    "evidence": "server/test/auth.test.ts; server/test/settings.test.ts",
+    "scope": "真实HTTP/独立子进程；会话/初始化/旧配置"
+  },
+  {
+    "id": "AUTH-06",
+    "status": "PASS",
+    "evidence": "server/test/settings.test.ts",
+    "scope": "持久化结构、IO故障、坏配置实际启动；测试启动期限调整后独立复核"
+  },
+  {
+    "id": "GIT-01",
+    "status": "PASS",
+    "evidence": "server/test/git.test.ts",
+    "scope": "本地Git/bare及mock API；含实际index/tree/refs与未知回执"
+  },
+  {
+    "id": "GIT-02",
+    "status": "PASS",
+    "evidence": "server/test/git.test.ts",
+    "scope": "本地Git/bare及mock API；含实际index/tree/refs与未知回执"
+  },
+  {
+    "id": "GIT-03",
+    "status": "PASS",
+    "evidence": "server/test/git.test.ts",
+    "scope": "本地Git/bare及mock API；含实际index/tree/refs与未知回执"
+  },
+  {
+    "id": "GIT-04",
+    "status": "PASS",
+    "evidence": "server/test/git.test.ts",
+    "scope": "本地Git/bare及mock API；含实际index/tree/refs与未知回执"
+  },
+  {
+    "id": "GIT-05",
+    "status": "PASS",
+    "evidence": "server/test/git.test.ts",
+    "scope": "本地Git/bare及mock API；含实际index/tree/refs与未知回执"
+  },
+  {
+    "id": "GIT-06",
+    "status": "PASS",
+    "evidence": "server/test/git.test.ts",
+    "scope": "本地Git/bare及mock API；含实际index/tree/refs与未知回执"
+  },
+  {
+    "id": "GIT-07",
+    "status": "PASS",
+    "evidence": "server/test/git.test.ts",
+    "scope": "本地Git/bare及mock API；含实际index/tree/refs与未知回执"
+  },
+  {
+    "id": "GIT-08",
+    "status": "PASS",
+    "evidence": "server/test/git.test.ts",
+    "scope": "本地Git/bare及mock API；含实际index/tree/refs与未知回执"
+  },
+  {
+    "id": "GIT-09-binary",
+    "status": "PASS",
+    "evidence": "server/test/git.test.ts",
+    "scope": "普通二进制/rename/delete的提交树"
+  },
+  {
+    "id": "GIT-09-LFS",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "真实LFS安装/pointer/对象还原未覆盖；4B首轮不用LFS"
+  },
+  {
+    "id": "SHARE-01",
+    "status": "PASS",
+    "evidence": "server/test/shares.test.ts",
+    "scope": "分享口令/限流/撤销/协议cookie属性"
+  },
+  {
+    "id": "WEB-01-protocol",
+    "status": "PASS",
+    "evidence": "server/test/auth.test.ts; server/test/transport.test.ts",
+    "scope": "HTTP与模拟可信代理属性；不代表真实TLS浏览器"
+  },
+  {
+    "id": "WEB-02-protocol",
+    "status": "PASS",
+    "evidence": "server/test/transport.test.ts; server/test/startup.test.ts",
+    "scope": "外Origin JSON/form/multipart拒绝且无写副作用；正常请求允许"
+  },
+  {
+    "id": "WS-01",
+    "status": "PASS",
+    "evidence": "server/test/transport.test.ts",
+    "scope": "真实WebSocket upgrade及撤销后事件阻止"
+  },
+  {
+    "id": "LOG-01",
+    "status": "PASS",
+    "evidence": "server/test/transport.test.ts; server/test/uploads.test.ts",
+    "scope": "假sentinel URL与图床错误；并非所有日志路径穷尽"
+  },
+  {
+    "id": "WEB-01-browser-TLS",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "WEB-03-browser-XSS",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "SHARE-02-complete",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "API-01-02-full-lifecycle",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "UI-01",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "UI-02",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "UI-03",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "UI-04",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "UI-05",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "BUILD-03",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "BUILD-04",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "DEP-01",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "DEP-02",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "DEP-03",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "DATA-01",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "DATA-02",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "DATA-03",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "COEX-01",
+    "status": "NOT-RUN",
+    "evidence": "none",
+    "scope": "目标环境/浏览器/完整恢复或真实共存验收不在本轮执行；见next-stage-readiness"
+  },
+  {
+    "id": "READ-01-product",
+    "status": "BLOCKED",
+    "evidence": "none",
+    "scope": "需产品决定全内容根公开还是仅读指定目录；代码保留现有全内容根读策略，不阻断固定夹具4B"
+  }
+]

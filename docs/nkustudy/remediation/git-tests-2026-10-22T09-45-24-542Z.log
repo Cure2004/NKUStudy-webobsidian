@@ -1,0 +1,229 @@
+TAP version 13
+# Subtest: GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+ok 1 - GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+  ---
+  duration_ms: 304.580208
+  type: 'test'
+  ...
+# Subtest: GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+not ok 2 - GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+  ---
+  duration_ms: 210.691125
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:5508'
+  failureType: 'testCodeFailure'
+  error: 'Initialize the repository before committing'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    commitAllImpl (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:562:33)
+    async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:58:14)
+  ...
+# Subtest: GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+ok 3 - GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+  ---
+  duration_ms: 501.327625
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# Subtest: GIT-03 absent/empty/invalid guest paths never become full-repo writes
+ok 4 - GIT-03 absent/empty/invalid guest paths never become full-repo writes
+  ---
+  duration_ms: 262.701875
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [error] Initialize the content repository before submitting 
+# Error: Initialize the content repository before submitting
+#     at assertTargetRepository (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:156:33)
+#     at async syncImpl (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:738:3)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:58:14)
+# Subtest: GIT-04 owner sync uses configured custom branch and preserves review ref
+not ok 5 - GIT-04 owner sync uses configured custom branch and preserves review ref
+  ---
+  duration_ms: 194.646041
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:7956'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    500 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 500
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:90:92)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+not ok 6 - GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+  ---
+  duration_ms: 192.325083
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:8931'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /Current content branch/. Input:
+    
+    'Error: Initialize the content repository before submitting'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: 'Initialize the content repository before submitting'
+  stack: |-
+    assertTargetRepository (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:156:33)
+    async syncImpl (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:738:3)
+    async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:58:14)
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:96:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+ok 7 - GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+  ---
+  duration_ms: 229.740042
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [error] Initialize the content repository before submitting 
+# Error: Initialize the content repository before submitting
+#     at assertTargetRepository (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:156:33)
+#     at async syncImpl (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:738:3)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:58:14)
+# Subtest: GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+not ok 8 - GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+  ---
+  duration_ms: 196.199791
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:12473'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    500 !== 200
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 200
+  actual: 500
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:132:174)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+not ok 9 - GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+  ---
+  duration_ms: 267.080625
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:13084'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /lookup failed/. Input:
+    
+    'Error: Initialize the content repository before submitting'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: 'Initialize the content repository before submitting'
+  stack: |-
+    assertTargetRepository (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:156:33)
+    async syncImpl (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:738:3)
+    async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:58:14)
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:136:122)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: GIT-07 behind base and conflicts stop before commit and preserve local draft
+not ok 10 - GIT-07 behind base and conflicts stop before commit and preserve local draft
+  ---
+  duration_ms: 345.124708
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:14292'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /behind/. Input:
+    
+    'Error: Initialize the content repository before submitting'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: 'Initialize the content repository before submitting'
+  stack: |-
+    assertTargetRepository (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:156:33)
+    async syncImpl (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:738:3)
+    async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:58:14)
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:143:80)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: GIT-08 old external lock is retained and concurrent app operations serialize
+not ok 11 - GIT-08 old external lock is retained and concurrent app operations serialize
+  ---
+  duration_ms: 234.990583
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:15005'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /active lock/. Input:
+    
+    'Error: Initialize the repository before committing'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: 'Initialize the repository before committing'
+  stack: |-
+    commitAllImpl (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:562:33)
+    async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:58:14)
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:147:216)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: GIT-09 explicit rename/delete and small binary preserve selected tree only
+not ok 12 - GIT-09 explicit rename/delete and small binary preserve selected tree only
+  ---
+  duration_ms: 200.962958
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/git.test.ts:1:15849'
+  failureType: 'testCodeFailure'
+  error: 'Initialize the repository before committing'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    commitAllImpl (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:562:33)
+    async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/git.ts:58:14)
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 4
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3468.206875

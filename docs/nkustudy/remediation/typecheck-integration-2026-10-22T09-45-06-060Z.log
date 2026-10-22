@@ -1,0 +1,20 @@
+
+> webobsidian@0.1.1 typecheck
+> npm --workspace server run typecheck && npm --workspace web run typecheck
+
+
+> @webobsidian/server@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @webobsidian/web@0.1.0 typecheck
+> tsc -b --noEmit
+
+src/lib/api.ts(279,106): error TS18004: No value exists in scope for the shorthand property 'setupToken'. Either declare one or provide an initializer.
+npm error Lifecycle script `typecheck` failed with error:
+npm error code 1
+npm error path /Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/web
+npm error workspace @webobsidian/web@0.1.0
+npm error location /Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/web
+npm error command failed
+npm error command sh -c tsc -b --noEmit

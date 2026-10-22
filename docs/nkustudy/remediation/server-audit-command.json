@@ -1,0 +1,31 @@
+{
+  "command": [
+    "npm",
+    "audit",
+    "--omit=dev",
+    "--workspace",
+    "server",
+    "--json"
+  ],
+  "exitCode": 1,
+  "at": "2026-10-22T09:52:04.992722+00:00",
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 2,
+      "critical": 0,
+      "total": 2
+    },
+    "dependencies": {
+      "prod": 410,
+      "dev": 570,
+      "optional": 135,
+      "peer": 30,
+      "peerOptional": 0,
+      "total": 981
+    }
+  },
+  "log": "server-audit-final.json"
+}

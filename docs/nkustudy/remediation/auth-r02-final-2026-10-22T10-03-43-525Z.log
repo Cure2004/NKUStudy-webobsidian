@@ -1,0 +1,76 @@
+TAP version 13
+# Subtest: AUTH-06 invalid JSON/schema/structure preserve both settings and immutable backup
+ok 1 - AUTH-06 invalid JSON/schema/structure preserve both settings and immutable backup
+  ---
+  duration_ms: 4778.036
+  type: 'test'
+  ...
+# Subtest: AUTH-06 missing primary with backup is recovery, never new installation
+ok 2 - AUTH-06 missing primary with backup is recovery, never new installation
+  ---
+  duration_ms: 1437.662334
+  type: 'test'
+  ...
+# Subtest: AUTH-06 unreadable existing settings fails closed without replacement
+ok 3 - AUTH-06 unreadable existing settings fails closed without replacement
+  ---
+  duration_ms: 1480.170459
+  type: 'test'
+  ...
+# Subtest: AUTH-06 failed persistence does not update live cache or replace settings/backup
+ok 4 - AUTH-06 failed persistence does not update live cache or replace settings/backup
+  ---
+  duration_ms: 1147.599083
+  type: 'test'
+  ...
+# Subtest: AUTH-02 legacy strong password migrates intact and explicit recovery never enables retired default
+ok 5 - AUTH-02 legacy strong password migrates intact and explicit recovery never enables retired default
+  ---
+  duration_ms: 2424.379
+  type: 'test'
+  ...
+# Subtest: AUTH-02 short/default recovery credential cannot initialize or authenticate
+ok 6 - AUTH-02 short/default recovery credential cannot initialize or authenticate
+  ---
+  duration_ms: 2028.326709
+  type: 'test'
+  ...
+# Subtest: AUTH-02 setup capability remains consumed after process restart
+ok 7 - AUTH-02 setup capability remains consumed after process restart
+  ---
+  duration_ms: 1422.163042
+  type: 'test'
+  ...
+# Subtest: AUTH-06 real server entrypoint exits before readiness on corrupted settings
+ok 8 - AUTH-06 real server entrypoint exits before readiness on corrupted settings
+  ---
+  duration_ms: 1618.857333
+  type: 'test'
+  ...
+# Subtest: AUTH-06 truncated persisted auth cannot default credentials away or reopen setup
+ok 9 - AUTH-06 truncated persisted auth cannot default credentials away or reopen setup
+  ---
+  duration_ms: 14992.272167
+  type: 'test'
+  ...
+# Subtest: AUTH-06 true legacy single-hash format migrates with exact old bytes retained
+ok 10 - AUTH-06 true legacy single-hash format migrates with exact old bytes retained
+  ---
+  duration_ms: 874.107541
+  type: 'test'
+  ...
+# Subtest: AUTH-06 symlink and non-regular primary files are refused without touching targets or backup
+ok 11 - AUTH-06 symlink and non-regular primary files are refused without touching targets or backup
+  ---
+  duration_ms: 1423.872959
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 34038.934792

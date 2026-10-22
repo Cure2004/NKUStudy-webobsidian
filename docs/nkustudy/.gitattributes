@@ -1,0 +1,4 @@
+# Preserve original evidence and command output byte-for-byte.
+evidence/** -whitespace
+remediation/*.log -whitespace
+remediation/candidate.patch -whitespace

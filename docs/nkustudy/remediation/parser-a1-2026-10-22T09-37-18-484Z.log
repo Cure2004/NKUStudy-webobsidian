@@ -1,0 +1,53 @@
+
+> webobsidian@0.1.1 test:parser
+> node --import tsx --test --test-concurrency=1 server/test/markdown.test.ts
+
+TAP version 13
+# Subtest: PAR-01 normal YAML/title/tags/BOM/CRLF remain data
+ok 1 - PAR-01 normal YAML/title/tags/BOM/CRLF remain data
+  ---
+  duration_ms: 1.784
+  type: 'test'
+  ...
+# Subtest: PAR-01 executable/unknown engines, aliases and malformed metadata never execute
+ok 2 - PAR-01 executable/unknown engines, aliases and malformed metadata never execute
+  ---
+  duration_ms: 0.52675
+  type: 'test'
+  ...
+# Subtest: PAR-01 real guest save and derived incremental index do not execute
+ok 3 - PAR-01 real guest save and derived incremental index do not execute
+  ---
+  duration_ms: 34.114542
+  type: 'test'
+  ...
+# Subtest: PAR-02 cold search/link indexes and lazy match contexts share safe parser
+ok 4 - PAR-02 cold search/link indexes and lazy match contexts share safe parser
+  ---
+  duration_ms: 6.205958
+  type: 'test'
+  ...
+# [api] parser-fixture PUT /notes/allowed/api.md
+# [api] parser-fixture GET /notes/allowed/api.md
+# [api] parser-fixture GET /notes/allowed/good.md
+# Subtest: PAR-02 API key read/write uses same safe parser; legitimate scopes remain
+ok 5 - PAR-02 API key read/write uses same safe parser; legitimate scopes remain
+  ---
+  duration_ms: 9.925917
+  type: 'test'
+  ...
+# Subtest: PAR-02 real SSR/public-share rendering treats hostile frontmatter as text
+ok 6 - PAR-02 real SSR/public-share rendering treats hostile frontmatter as text
+  ---
+  duration_ms: 9.583167
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5463.882833

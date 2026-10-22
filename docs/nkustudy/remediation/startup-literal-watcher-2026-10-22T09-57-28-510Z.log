@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: Integrated server: isolated startup, protected setup, owner edit/read and same-origin guard
+ok 1 - Integrated server: isolated startup, protected setup, owner edit/read and same-origin guard
+  ---
+  duration_ms: 2345.284958
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3084.772125

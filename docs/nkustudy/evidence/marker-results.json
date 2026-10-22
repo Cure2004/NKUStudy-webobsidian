@@ -1,0 +1,6 @@
+{
+  "id": "guest-markdown-javascript-engine",
+  "status": 200,
+  "marker": "fixture-executed",
+  "effect": "in-process marker only; no command, credential read, or external network"
+}

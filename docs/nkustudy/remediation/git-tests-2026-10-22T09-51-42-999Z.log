@@ -1,0 +1,120 @@
+TAP version 13
+# Subtest: GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+ok 1 - GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+  ---
+  duration_ms: 1307.645125
+  type: 'test'
+  ...
+# Subtest: GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+ok 2 - GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+  ---
+  duration_ms: 2751.3555
+  type: 'test'
+  ...
+# Subtest: GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+ok 3 - GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+  ---
+  duration_ms: 1577.062666
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# Subtest: GIT-03 absent/empty/invalid guest paths never become full-repo writes
+ok 4 - GIT-03 absent/empty/invalid guest paths never become full-repo writes
+  ---
+  duration_ms: 632.70325
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: Committed a97f5ae0b1b133be1a27161c87840c37505e0599 (1 files): 修复: 本地同步 | Push complete; review/merge/publication remain separate
+# Subtest: GIT-04 owner sync uses configured custom branch and preserves review ref
+ok 5 - GIT-04 owner sync uses configured custom branch and preserves review ref
+  ---
+  duration_ms: 1906.564
+  type: 'test'
+  ...
+# Subtest: GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+ok 6 - GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+  ---
+  duration_ms: 1193.875375
+  type: 'test'
+  ...
+# Subtest: GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+ok 7 - GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+  ---
+  duration_ms: 1135.314291
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: Committed 168fea700972d490c116ebe446f9e33c82c7efb1 (1 files): 修复: 访客投稿 | Pull request \#7 available for review | Push complete; review/merge/publication remain separate
+# Subtest: GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+ok 8 - GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+  ---
+  duration_ms: 1946.892125
+  type: 'test'
+  ...
+# Subtest: GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+ok 9 - GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+  ---
+  duration_ms: 1891.222959
+  type: 'test'
+  ...
+# Subtest: GIT-07 behind base and conflicts stop before commit and preserve local draft
+ok 10 - GIT-07 behind base and conflicts stop before commit and preserve local draft
+  ---
+  duration_ms: 744.398375
+  type: 'test'
+  ...
+# Subtest: GIT-08 old external lock is retained and concurrent app operations serialize
+ok 11 - GIT-08 old external lock is retained and concurrent app operations serialize
+  ---
+  duration_ms: 1227.196208
+  type: 'test'
+  ...
+# Subtest: GIT-09 explicit rename/delete and small binary preserve selected tree only
+ok 12 - GIT-09 explicit rename/delete and small binary preserve selected tree only
+  ---
+  duration_ms: 1166.604459
+  type: 'test'
+  ...
+# Subtest: GIT-06 guest requires App and PR policy before mutation, and lookup failures never create
+ok 13 - GIT-06 guest requires App and PR policy before mutation, and lookup failures never create
+  ---
+  duration_ms: 712.652792
+  type: 'test'
+  ...
+# Subtest: GIT-07 existing PR pauses sync and follow-base, reuse avoids duplicate PR writes
+ok 14 - GIT-07 existing PR pauses sync and follow-base, reuse avoids duplicate PR writes
+  ---
+  duration_ms: 678.485833
+  type: 'test'
+  ...
+# Subtest: GIT-06 standalone PR unknown outcome also prevents repeated writes
+ok 15 - GIT-06 standalone PR unknown outcome also prevents repeated writes
+  ---
+  duration_ms: 576.7935
+  type: 'test'
+  ...
+# Subtest: GIT-06 push refusal is conservatively unknown and cannot be replayed
+ok 16 - GIT-06 push refusal is conservatively unknown and cannot be replayed
+  ---
+  duration_ms: 2773.604583
+  type: 'test'
+  ...
+# Subtest: GIT-06 expired mock App tokens refresh; token exchange failure prevents commit
+ok 17 - GIT-06 expired mock App tokens refresh; token exchange failure prevents commit
+  ---
+  duration_ms: 1202.1225
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24238.473792

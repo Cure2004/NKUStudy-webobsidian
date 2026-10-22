@@ -1,0 +1,20 @@
+{
+  "name": "auth-tests",
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "--test-concurrency=1",
+    "server/test/auth.test.ts",
+    "server/test/settings.test.ts",
+    "server/test/shares.test.ts"
+  ],
+  "startedAt": "2026-10-22T09:44:38.340Z",
+  "endedAt": "2026-10-22T09:44:42.020Z",
+  "exitCode": 0,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "auth-tests-2026-10-22T09-44-38-340Z.log"
+}

@@ -1,0 +1,148 @@
+TAP version 13
+# Subtest: AUTH-02 new installation rejects default and unauthorized setup without changing settings
+ok 1 - AUTH-02 new installation rejects default and unauthorized setup without changing settings
+  ---
+  duration_ms: 25.912292
+  type: 'test'
+  ...
+# Subtest: AUTH-02 concurrent protected setup succeeds once and cannot be replayed
+ok 2 - AUTH-02 concurrent protected setup succeeds once and cannot be replayed
+  ---
+  duration_ms: 48.313875
+  type: 'test'
+  ...
+# Subtest: AUTH-01 closed mode denies anonymous and guest; public mode grants only guest
+ok 3 - AUTH-01 closed mode denies anonymous and guest; public mode grants only guest
+  ---
+  duration_ms: 4.54775
+  type: 'test'
+  ...
+# Subtest: AUTH-03 guest never enters password verification or mutates authentication
+ok 4 - AUTH-03 guest never enters password verification or mutates authentication
+  ---
+  duration_ms: 25.431125
+  type: 'test'
+  ...
+# Subtest: AUTH-05 password change refreshes current cookie and revokes old sessions
+ok 5 - AUTH-05 password change refreshes current cookie and revokes old sessions
+  ---
+  duration_ms: 89.901791
+  type: 'test'
+  ...
+# Subtest: AUTH-05 logout revokes owner sessions; anonymous logout cannot revoke owner
+ok 6 - AUTH-05 logout revokes owner sessions; anonymous logout cannot revoke owner
+  ---
+  duration_ms: 23.1515
+  type: 'test'
+  ...
+# Subtest: AUTH-05 expired, tampered, wrong algorithm and legacy unversioned tokens are rejected
+ok 7 - AUTH-05 expired, tampered, wrong algorithm and legacy unversioned tokens are rejected
+  ---
+  duration_ms: 3.174542
+  type: 'test'
+  ...
+# Subtest: AUTH-05 racing old-password login cannot receive a new credential generation
+ok 8 - AUTH-05 racing old-password login cannot receive a new credential generation
+  ---
+  duration_ms: 40.467958
+  type: 'test'
+  ...
+# Subtest: AUTH-03 owner wrong-password validation is rate limited without disk mutation
+ok 9 - AUTH-03 owner wrong-password validation is rate limited without disk mutation
+  ---
+  duration_ms: 182.61225
+  type: 'test'
+  ...
+# Subtest: AUTH-04 real login endpoint limits repeated failures and returns Retry-After
+ok 10 - AUTH-04 real login endpoint limits repeated failures and returns Retry-After
+  ---
+  duration_ms: 150.464375
+  type: 'test'
+  ...
+# Subtest: AUTH-04 limiter ignores spoofed XFF with trust=true and separates explicitly trusted proxy clients
+ok 11 - AUTH-04 limiter ignores spoofed XFF with trust=true and separates explicitly trusted proxy clients
+  ---
+  duration_ms: 5.2525
+  type: 'test'
+  ...
+# Subtest: AUTH-06 invalid JSON/schema/structure preserve both settings and immutable backup
+ok 12 - AUTH-06 invalid JSON/schema/structure preserve both settings and immutable backup
+  ---
+  duration_ms: 563.804917
+  type: 'test'
+  ...
+# Subtest: AUTH-06 missing primary with backup is recovery, never new installation
+ok 13 - AUTH-06 missing primary with backup is recovery, never new installation
+  ---
+  duration_ms: 170.998959
+  type: 'test'
+  ...
+# Subtest: AUTH-06 unreadable existing settings fails closed without replacement
+ok 14 - AUTH-06 unreadable existing settings fails closed without replacement
+  ---
+  duration_ms: 164.638417
+  type: 'test'
+  ...
+# Subtest: AUTH-06 failed persistence does not update live cache or replace settings/backup
+ok 15 - AUTH-06 failed persistence does not update live cache or replace settings/backup
+  ---
+  duration_ms: 167.767542
+  type: 'test'
+  ...
+# Subtest: AUTH-02 legacy strong password migrates intact and explicit recovery never enables retired default
+ok 16 - AUTH-02 legacy strong password migrates intact and explicit recovery never enables retired default
+  ---
+  duration_ms: 235.240125
+  type: 'test'
+  ...
+# Subtest: AUTH-02 short/default recovery credential cannot initialize or authenticate
+ok 17 - AUTH-02 short/default recovery credential cannot initialize or authenticate
+  ---
+  duration_ms: 284.985417
+  type: 'test'
+  ...
+# Subtest: AUTH-02 setup capability remains consumed after process restart
+ok 18 - AUTH-02 setup capability remains consumed after process restart
+  ---
+  duration_ms: 308.726542
+  type: 'test'
+  ...
+# Subtest: AUTH-06 real server entrypoint exits before readiness on corrupted settings
+ok 19 - AUTH-06 real server entrypoint exits before readiness on corrupted settings
+  ---
+  duration_ms: 374.391458
+  type: 'test'
+  ...
+# Subtest: SHARE-01 owner creates password shares, guest cannot manage them
+ok 20 - SHARE-01 owner creates password shares, guest cannot manage them
+  ---
+  duration_ms: 68.251458
+  type: 'test'
+  ...
+# Subtest: SHARE-01 correct password unlocks only its share and uses Secure cookie behind trusted TLS proxy
+ok 21 - SHARE-01 correct password unlocks only its share and uses Secure cookie behind trusted TLS proxy
+  ---
+  duration_ms: 32.74925
+  type: 'test'
+  ...
+# Subtest: SHARE-01 changing a share password invalidates earlier unlock cookies and disabling rejects reads
+ok 22 - SHARE-01 changing a share password invalidates earlier unlock cookies and disabling rejects reads
+  ---
+  duration_ms: 24.410541
+  type: 'test'
+  ...
+# Subtest: SHARE-01 repeated wrong passwords are throttled without modifying content or share records
+ok 23 - SHARE-01 repeated wrong passwords are throttled without modifying content or share records
+  ---
+  duration_ms: 211.454
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3656.713417

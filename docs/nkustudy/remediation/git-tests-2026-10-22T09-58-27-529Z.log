@@ -1,0 +1,150 @@
+TAP version 13
+# Subtest: GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+ok 1 - GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+  ---
+  duration_ms: 2412.091
+  type: 'test'
+  ...
+# Subtest: GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+ok 2 - GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+  ---
+  duration_ms: 4743.177375
+  type: 'test'
+  ...
+# Subtest: GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+ok 3 - GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+  ---
+  duration_ms: 1677.543334
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# Subtest: GIT-03 absent/empty/invalid guest paths never become full-repo writes
+ok 4 - GIT-03 absent/empty/invalid guest paths never become full-repo writes
+  ---
+  duration_ms: 909.006458
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: Committed 6b750b6fbdac5ae64fac2fccf29c17ba2b3379b1 (1 files): 修复: 本地同步 | Push complete; review/merge/publication remain separate
+# Subtest: GIT-04 owner sync uses configured custom branch and preserves review ref
+ok 5 - GIT-04 owner sync uses configured custom branch and preserves review ref
+  ---
+  duration_ms: 2717.584917
+  type: 'test'
+  ...
+# Subtest: GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+ok 6 - GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+  ---
+  duration_ms: 1264.924125
+  type: 'test'
+  ...
+# Subtest: GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+ok 7 - GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+  ---
+  duration_ms: 669.155541
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: Committed 0143cd8d9a80cff39b20c8f0e9ae0cf7f1aa2848 (1 files): 修复: 访客投稿 | Pull request \#7 available for review | Push complete; review/merge/publication remain separate
+# Subtest: GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+ok 8 - GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+  ---
+  duration_ms: 2123.717917
+  type: 'test'
+  ...
+# Subtest: GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+ok 9 - GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+  ---
+  duration_ms: 3678.325292
+  type: 'test'
+  ...
+# Subtest: GIT-07 behind base and conflicts stop before commit and preserve local draft
+ok 10 - GIT-07 behind base and conflicts stop before commit and preserve local draft
+  ---
+  duration_ms: 1249.277375
+  type: 'test'
+  ...
+# Subtest: GIT-08 old external lock is retained and concurrent app operations serialize
+ok 11 - GIT-08 old external lock is retained and concurrent app operations serialize
+  ---
+  duration_ms: 1430.965875
+  type: 'test'
+  ...
+# Subtest: GIT-09 explicit rename/delete and small binary preserve selected tree only
+ok 12 - GIT-09 explicit rename/delete and small binary preserve selected tree only
+  ---
+  duration_ms: 1257.58525
+  type: 'test'
+  ...
+# Subtest: GIT-06 guest requires App and PR policy before mutation, and lookup failures never create
+ok 13 - GIT-06 guest requires App and PR policy before mutation, and lookup failures never create
+  ---
+  duration_ms: 1296.990167
+  type: 'test'
+  ...
+# Subtest: GIT-07 existing PR pauses sync and follow-base, reuse avoids duplicate PR writes
+ok 14 - GIT-07 existing PR pauses sync and follow-base, reuse avoids duplicate PR writes
+  ---
+  duration_ms: 1865.326542
+  type: 'test'
+  ...
+# Subtest: GIT-06 standalone PR unknown outcome also prevents repeated writes
+ok 15 - GIT-06 standalone PR unknown outcome also prevents repeated writes
+  ---
+  duration_ms: 2929.888167
+  type: 'test'
+  ...
+# Subtest: GIT-06 push refusal is conservatively unknown and cannot be replayed
+ok 16 - GIT-06 push refusal is conservatively unknown and cannot be replayed
+  ---
+  duration_ms: 6463.757666
+  type: 'test'
+  ...
+# Subtest: GIT-06 expired mock App tokens refresh; token exchange failure prevents commit
+ok 17 - GIT-06 expired mock App tokens refresh; token exchange failure prevents commit
+  ---
+  duration_ms: 2027.219209
+  type: 'test'
+  ...
+# Subtest: GIT-04 selected sync cannot carry unrelated local-only commit history
+ok 18 - GIT-04 selected sync cannot carry unrelated local-only commit history
+  ---
+  duration_ms: 1380.236375
+  type: 'test'
+  ...
+# Subtest: GIT-07 unfinished merge is retained without hidden abort/reset/commit
+ok 19 - GIT-07 unfinished merge is retained without hidden abort/reset/commit
+  ---
+  duration_ms: 640.049042
+  type: 'test'
+  ...
+# Subtest: GIT-06 unresolved receipt blocks clean omitted/empty retry instead of returning Synced
+ok 20 - GIT-06 unresolved receipt blocks clean omitted/empty retry instead of returning Synced
+  ---
+  duration_ms: 2009.899125
+  type: 'test'
+  ...
+# Subtest: GIT-04 owner Commit then omitted-path Sync pushes existing reviewed history; explicit [] does not
+ok 21 - GIT-04 owner Commit then omitted-path Sync pushes existing reviewed history; explicit [] does not
+  ---
+  duration_ms: 3329.963167
+  type: 'test'
+  ...
+# Subtest: GIT-04 clean owner omitted-path Sync fast-forwards remote edits without guest publication
+ok 22 - GIT-04 clean owner omitted-path Sync fast-forwards remote edits without guest publication
+  ---
+  duration_ms: 1854.292583
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 49335.274834

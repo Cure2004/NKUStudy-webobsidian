@@ -1,0 +1,17 @@
+{
+  "name": "startup-literal-watcher",
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "server/test/startup.test.ts"
+  ],
+  "startedAt": "2026-10-22T09:57:28.510Z",
+  "endedAt": "2026-10-22T09:57:31.701Z",
+  "exitCode": 0,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "startup-literal-watcher-2026-10-22T09-57-28-510Z.log"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "git-tests",
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "--test-concurrency=1",
+    "server/test/git.test.ts"
+  ],
+  "startedAt": "2026-10-22T09:46:55.192Z",
+  "endedAt": "2026-10-22T09:47:00.346Z",
+  "exitCode": 1,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "git-tests-2026-10-22T09-46-55-192Z.log"
+}

@@ -1,0 +1,24 @@
+{
+  "name": "dependency-lock-refresh",
+  "command": [
+    "npm",
+    "update",
+    "qs",
+    "proxy-addr",
+    "dompurify",
+    "katex",
+    "@xmldom/xmldom",
+    "body-parser",
+    "--package-lock-only",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund"
+  ],
+  "startedAt": "2026-10-22T09:43:26.243Z",
+  "endedAt": "2026-10-22T09:43:29.303Z",
+  "exitCode": 0,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "dependency-lock-refresh-2026-10-22T09-43-26-243Z.log"
+}

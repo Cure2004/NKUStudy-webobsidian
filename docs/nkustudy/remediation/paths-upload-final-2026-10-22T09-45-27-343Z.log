@@ -1,0 +1,155 @@
+TAP version 13
+# Subtest: PATH-01–11 canonical object authorization and no side effects
+    # Subtest: PATH-01 allowed write/read/search remains available; direct private denied
+    ok 1 - PATH-01 allowed write/read/search remains available; direct private denied
+      ---
+      duration_ms: 131.378083
+      type: 'test'
+      ...
+    # Subtest: PATH-02/03 final dotdot target and content escape denied for guest/owner
+    ok 2 - PATH-02/03 final dotdot target and content escape denied for guest/owner
+      ---
+      duration_ms: 310.682959
+      type: 'test'
+      ...
+    # Subtest: PATH-04/05 symlink private/external, existing and missing descendants denied
+    ok 3 - PATH-04/05 symlink private/external, existing and missing descendants denied
+      ---
+      duration_ms: 573.685125
+      type: 'test'
+      ...
+    # Subtest: PATH-06/07 rename/copy both endpoints and recursive hidden entries preflighted
+    ok 4 - PATH-06/07 rename/copy both endpoints and recursive hidden entries preflighted
+      ---
+      duration_ms: 481.689292
+      type: 'test'
+      ...
+    # Subtest: PATH-08 encoded query delete denied in permanent and trash modes
+    ok 5 - PATH-08 encoded query delete denied in permanent and trash modes
+      ---
+      duration_ms: 138.903708
+      type: 'test'
+      ...
+    # Subtest: PATH-09 portable syntax, unicode, repeated separators and no double decoding
+    ok 6 - PATH-09 portable syntax, unicode, repeated separators and no double decoding
+      ---
+      duration_ms: 295.72475
+      type: 'test'
+      ...
+    # Subtest: PATH-10 .git direct/case/symlink aliases and nested metadata blocked
+    ok 7 - PATH-10 .git direct/case/symlink aliases and nested metadata blocked
+      ---
+      duration_ms: 317.21175
+      type: 'test'
+      ...
+# [api] fixture-path-key PUT /notes/private/key-legal.md
+# [api] fixture-path-key PUT /notes/.git/config
+# [api] fixture-path-key PUT /notes/..%2Foutside-content.md
+# [api] fixture-path-key PUT /notes/allowed/git-alias/config
+    # Subtest: PATH-03/10 API key retains content writes but cannot reach metadata or outside roots
+    ok 8 - PATH-03/10 API key retains content writes but cannot reach metadata or outside roots
+      ---
+      duration_ms: 224.74625
+      type: 'test'
+      ...
+    # Subtest: PATH-11 root mutations, disjoint/empty roots, invalid ancestors fail closed
+    ok 9 - PATH-11 root mutations, disjoint/empty roots, invalid ancestors fail closed
+      ---
+      duration_ms: 388.302917
+      type: 'test'
+      ...
+    1..9
+ok 1 - PATH-01–11 canonical object authorization and no side effects
+  ---
+  duration_ms: 2868.543416
+  type: 'test'
+  ...
+# Subtest: UPL-01–06 bounded, authorized uploads and cleanup
+    # Subtest: UPL-01 missing/empty dir cannot write content root for guest
+    ok 1 - UPL-01 missing/empty dir cannot write content root for guest
+      ---
+      duration_ms: 217.289083
+      type: 'test'
+      ...
+    # Subtest: UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+    ok 2 - UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+      ---
+      duration_ms: 472.404583
+      type: 'test'
+      ...
+    # Subtest: UPL-03/04 image fallback preauthorization does not expand attachment scope
+    ok 3 - UPL-03/04 image fallback preauthorization does not expand attachment scope
+      ---
+      duration_ms: 349.256208
+      type: 'test'
+      ...
+    # Subtest: UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+    ok 4 - UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+      ---
+      duration_ms: 354.7465
+      type: 'test'
+      ...
+    # Subtest: UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+    ok 5 - UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+      ---
+      duration_ms: 154.772791
+      type: 'test'
+      ...
+    # Subtest: UPL-06 concurrency and deadline reject without creating final files
+    ok 6 - UPL-06 concurrency and deadline reject without creating final files
+      ---
+      duration_ms: 184.050334
+      type: 'test'
+      ...
+    # Subtest: UPL-06 interrupted client removes temporary data and releases slot
+    ok 7 - UPL-06 interrupted client removes temporary data and releases slot
+      ---
+      duration_ms: 107.163208
+      type: 'test'
+      ...
+# [error] 图床返回 400 
+# UploadError: 图床返回 400
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:94:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 403 
+# UploadError: 图床返回 403
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:94:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 429 
+# UploadError: 图床返回 429
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:94:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 500 
+# UploadError: 图床返回 500
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:94:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床连接失败或超时 
+# UploadError: 图床连接失败或超时
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:72:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+    # Subtest: UPL-04 owner mock success/errors/timeout redact body/key; guest never forwards
+    ok 8 - UPL-04 owner mock success/errors/timeout redact body/key; guest never forwards
+      ---
+      duration_ms: 535.949292
+      type: 'test'
+      ...
+    1..8
+ok 2 - UPL-01–06 bounded, authorized uploads and cleanup
+  ---
+  duration_ms: 2380.182958
+  type: 'test'
+  ...
+1..2
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8170.180042

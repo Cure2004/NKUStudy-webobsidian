@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: UPL-01–06 bounded, authorized uploads and cleanup
+    # Subtest: UPL-01 missing/empty dir cannot write content root for guest
+    ok 1 - UPL-01 missing/empty dir cannot write content root for guest
+      ---
+      duration_ms: 188.420083
+      type: 'test'
+      ...
+    # Subtest: UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+    ok 2 - UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+      ---
+      duration_ms: 396.297583
+      type: 'test'
+      ...
+    # Subtest: UPL-03/04 image fallback preauthorization does not expand attachment scope
+    ok 3 - UPL-03/04 image fallback preauthorization does not expand attachment scope
+      ---
+      duration_ms: 385.372958
+      type: 'test'
+      ...
+    # Subtest: UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+    ok 4 - UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+      ---
+      duration_ms: 451.834042
+      type: 'test'
+      ...
+    # Subtest: UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+    ok 5 - UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+      ---
+      duration_ms: 218.024542
+      type: 'test'
+      ...
+    # Subtest: UPL-06 concurrency and deadline reject without creating final files
+    ok 6 - UPL-06 concurrency and deadline reject without creating final files
+      ---
+      duration_ms: 192.652208
+      type: 'test'
+      ...
+    # Subtest: UPL-06 interrupted client removes temporary data and releases slot
+    ok 7 - UPL-06 interrupted client removes temporary data and releases slot
+      ---
+      duration_ms: 107.986542
+      type: 'test'
+      ...
+# [error] 图床返回 400 
+# UploadError: 图床返回 400
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:95:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 403 
+# UploadError: 图床返回 403
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:95:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 429 
+# UploadError: 图床返回 429
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:95:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 500 
+# UploadError: 图床返回 500
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:95:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床连接失败或超时 
+# UploadError: 图床连接失败或超时
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:73:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床连接失败或超时 
+# UploadError: 图床连接失败或超时
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:73:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+#     at ServerResponse.setHeader (node:_http_outgoing:700:11)
+#     at ServerResponse.header (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/express/lib/response.js:794:10)
+#     at ServerResponse.send (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/express/lib/response.js:174:12)
+#     at ServerResponse.json (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/express/lib/response.js:278:15)
+#     at errorHandler (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/middleware/error.ts:20:22)
+#     at Layer.handle_error (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/express/lib/router/layer.js:71:5)
+#     at trim_prefix (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/express/lib/router/index.js:326:13)
+#     at /Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/express/lib/router/index.js:286:9
+#     at Function.process_params (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/express/lib/router/index.js:346:12)
+#     at next (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/node_modules/express/lib/router/index.js:280:10)
+    # Subtest: UPL-04 owner mock success/errors/timeout redact body/key; guest never forwards
+    ok 8 - UPL-04 owner mock success/errors/timeout redact body/key; guest never forwards
+      ---
+      duration_ms: 721.837667
+      type: 'test'
+      ...
+    1..8
+ok 1 - UPL-01–06 bounded, authorized uploads and cleanup
+  ---
+  duration_ms: 2667.521459
+  type: 'test'
+  ...
+1..1
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3039.854041

@@ -1,0 +1,570 @@
+
+> webobsidian@0.1.1 test:security
+> node --import tsx --test --test-concurrency=1 server/test/*.test.ts
+
+TAP version 13
+# Subtest: AUTH-02 new installation rejects default and unauthorized setup without changing settings
+ok 1 - AUTH-02 new installation rejects default and unauthorized setup without changing settings
+  ---
+  duration_ms: 352.102791
+  type: 'test'
+  ...
+# Subtest: AUTH-02 concurrent protected setup succeeds once and cannot be replayed
+ok 2 - AUTH-02 concurrent protected setup succeeds once and cannot be replayed
+  ---
+  duration_ms: 294.452458
+  type: 'test'
+  ...
+# Subtest: AUTH-01 closed mode denies anonymous and guest; public mode grants only guest
+ok 3 - AUTH-01 closed mode denies anonymous and guest; public mode grants only guest
+  ---
+  duration_ms: 40.388208
+  type: 'test'
+  ...
+# Subtest: AUTH-03 guest never enters password verification or mutates authentication
+ok 4 - AUTH-03 guest never enters password verification or mutates authentication
+  ---
+  duration_ms: 225.644875
+  type: 'test'
+  ...
+# Subtest: AUTH-05 password change refreshes current cookie and revokes old sessions
+ok 5 - AUTH-05 password change refreshes current cookie and revokes old sessions
+  ---
+  duration_ms: 739.904375
+  type: 'test'
+  ...
+# Subtest: AUTH-05 logout revokes owner sessions; anonymous logout cannot revoke owner
+ok 6 - AUTH-05 logout revokes owner sessions; anonymous logout cannot revoke owner
+  ---
+  duration_ms: 418.881791
+  type: 'test'
+  ...
+# Subtest: AUTH-05 expired, tampered, wrong algorithm and legacy unversioned tokens are rejected
+ok 7 - AUTH-05 expired, tampered, wrong algorithm and legacy unversioned tokens are rejected
+  ---
+  duration_ms: 35.586042
+  type: 'test'
+  ...
+# Subtest: AUTH-05 racing old-password login cannot receive a new credential generation
+ok 8 - AUTH-05 racing old-password login cannot receive a new credential generation
+  ---
+  duration_ms: 352.566875
+  type: 'test'
+  ...
+# Subtest: AUTH-03 owner wrong-password validation is rate limited without disk mutation
+ok 9 - AUTH-03 owner wrong-password validation is rate limited without disk mutation
+  ---
+  duration_ms: 1065.58925
+  type: 'test'
+  ...
+# Subtest: AUTH-04 real login endpoint limits repeated failures and returns Retry-After
+ok 10 - AUTH-04 real login endpoint limits repeated failures and returns Retry-After
+  ---
+  duration_ms: 1071.697291
+  type: 'test'
+  ...
+# Subtest: AUTH-04 limiter ignores spoofed XFF with trust=true and separates explicitly trusted proxy clients
+ok 11 - AUTH-04 limiter ignores spoofed XFF with trust=true and separates explicitly trusted proxy clients
+  ---
+  duration_ms: 44.575542
+  type: 'test'
+  ...
+# Subtest: KaTeX updated API: normal formula output and untrusted URL control
+ok 12 - KaTeX updated API: normal formula output and untrusted URL control
+  ---
+  duration_ms: 17.390167
+  type: 'test'
+  ...
+# Subtest: Patched production dependency resolutions include nested Mermaid KaTeX
+ok 13 - Patched production dependency resolutions include nested Mermaid KaTeX
+  ---
+  duration_ms: 18.212125
+  type: 'test'
+  ...
+# Subtest: GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+ok 14 - GIT-01 explicit empty selection leaves commit/index/worktree unchanged
+  ---
+  duration_ms: 2374.5815
+  type: 'test'
+  ...
+# Subtest: GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+ok 15 - GIT-02 isolated index commits only selected literal files and preserves unrelated staged blobs
+  ---
+  duration_ms: 3247.661375
+  type: 'test'
+  ...
+# Subtest: GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+ok 16 - GIT-02 guest dotdot, symlink and mixed selection rejected without effects
+  ---
+  duration_ms: 2987.848083
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# [git] manual sync requested
+# [git] sync ok: No authorized file changes selected
+# Subtest: GIT-03 absent/empty/invalid guest paths never become full-repo writes
+ok 17 - GIT-03 absent/empty/invalid guest paths never become full-repo writes
+  ---
+  duration_ms: 1816.81725
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: Committed ba38425f62efc392526264edf689e448b169a4eb (1 files): 修复: 本地同步 | Push complete; review/merge/publication remain separate
+# Subtest: GIT-04 owner sync uses configured custom branch and preserves review ref
+ok 18 - GIT-04 owner sync uses configured custom branch and preserves review ref
+  ---
+  duration_ms: 4251.340958
+  type: 'test'
+  ...
+# Subtest: GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+ok 19 - GIT-04 wrong current branch fails before commit; no automatic checkout/base write
+  ---
+  duration_ms: 1796.754209
+  type: 'test'
+  ...
+# Subtest: GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+ok 20 - GIT-05 disabled/missing/unconfirmed/mismatched target fails closed
+  ---
+  duration_ms: 3187.0945
+  type: 'test'
+  ...
+# [git] manual sync requested
+# [git] sync ok: Committed 23371f539a59951f03178e8e9e93c2dbf37859e5 (1 files): 修复: 访客投稿 | Pull request \#7 available for review | Push complete; review/merge/publication remain separate
+# Subtest: GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+ok 21 - GIT-06 guest local bare/mock PR succeeds on custom edit/base without fixed QUT values
+  ---
+  duration_ms: 9669.703917
+  type: 'test'
+  ...
+# Subtest: GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+ok 22 - GIT-06 PR lookup failure does not commit; PR POST unknown blocks replay and supports query-only recovery
+  ---
+  duration_ms: 15501.804666
+  type: 'test'
+  ...
+# Subtest: GIT-07 behind base and conflicts stop before commit and preserve local draft
+ok 23 - GIT-07 behind base and conflicts stop before commit and preserve local draft
+  ---
+  duration_ms: 7893.629791
+  type: 'test'
+  ...
+# Subtest: GIT-08 old external lock is retained and concurrent app operations serialize
+ok 24 - GIT-08 old external lock is retained and concurrent app operations serialize
+  ---
+  duration_ms: 9643.556875
+  type: 'test'
+  ...
+# Subtest: GIT-09 explicit rename/delete and small binary preserve selected tree only
+ok 25 - GIT-09 explicit rename/delete and small binary preserve selected tree only
+  ---
+  duration_ms: 4386.539916
+  type: 'test'
+  ...
+# Subtest: GIT-06 guest requires App and PR policy before mutation, and lookup failures never create
+ok 26 - GIT-06 guest requires App and PR policy before mutation, and lookup failures never create
+  ---
+  duration_ms: 3678.798458
+  type: 'test'
+  ...
+# Subtest: GIT-07 existing PR pauses sync and follow-base, reuse avoids duplicate PR writes
+ok 27 - GIT-07 existing PR pauses sync and follow-base, reuse avoids duplicate PR writes
+  ---
+  duration_ms: 5487.401708
+  type: 'test'
+  ...
+# Subtest: GIT-06 standalone PR unknown outcome also prevents repeated writes
+ok 28 - GIT-06 standalone PR unknown outcome also prevents repeated writes
+  ---
+  duration_ms: 6736.723875
+  type: 'test'
+  ...
+# Subtest: GIT-06 push refusal is conservatively unknown and cannot be replayed
+ok 29 - GIT-06 push refusal is conservatively unknown and cannot be replayed
+  ---
+  duration_ms: 14245.337542
+  type: 'test'
+  ...
+# Subtest: GIT-06 expired mock App tokens refresh; token exchange failure prevents commit
+ok 30 - GIT-06 expired mock App tokens refresh; token exchange failure prevents commit
+  ---
+  duration_ms: 6102.936709
+  type: 'test'
+  ...
+# Subtest: GIT-04 selected sync cannot carry unrelated local-only commit history
+ok 31 - GIT-04 selected sync cannot carry unrelated local-only commit history
+  ---
+  duration_ms: 5497.133708
+  type: 'test'
+  ...
+# Subtest: GIT-07 unfinished merge is retained without hidden abort/reset/commit
+ok 32 - GIT-07 unfinished merge is retained without hidden abort/reset/commit
+  ---
+  duration_ms: 3911.01525
+  type: 'test'
+  ...
+# Subtest: GIT-06 unresolved receipt blocks clean omitted/empty retry instead of returning Synced
+ok 33 - GIT-06 unresolved receipt blocks clean omitted/empty retry instead of returning Synced
+  ---
+  duration_ms: 11452.26675
+  type: 'test'
+  ...
+# Subtest: GIT-04 owner Commit then omitted-path Sync pushes existing reviewed history; explicit [] does not
+ok 34 - GIT-04 owner Commit then omitted-path Sync pushes existing reviewed history; explicit [] does not
+  ---
+  duration_ms: 7202.495417
+  type: 'test'
+  ...
+# Subtest: GIT-04 clean owner omitted-path Sync fast-forwards remote edits without guest publication
+ok 35 - GIT-04 clean owner omitted-path Sync fast-forwards remote edits without guest publication
+  ---
+  duration_ms: 6769.865541
+  type: 'test'
+  ...
+# Subtest: GIT-05 concurrent settings update waits for entire Git operation snapshot
+ok 36 - GIT-05 concurrent settings update waits for entire Git operation snapshot
+  ---
+  duration_ms: 12536.560958
+  type: 'test'
+  ...
+# Subtest: GIT-08 public-edit snapshot disables all background Git writes
+ok 37 - GIT-08 public-edit snapshot disables all background Git writes
+  ---
+  duration_ms: 3659.6015
+  type: 'test'
+  ...
+# Subtest: PAR-01 normal YAML/title/tags/BOM/CRLF remain data
+ok 38 - PAR-01 normal YAML/title/tags/BOM/CRLF remain data
+  ---
+  duration_ms: 34.050042
+  type: 'test'
+  ...
+# Subtest: PAR-01 executable/unknown engines, aliases and malformed metadata never execute
+ok 39 - PAR-01 executable/unknown engines, aliases and malformed metadata never execute
+  ---
+  duration_ms: 2.454083
+  type: 'test'
+  ...
+# Subtest: PAR-01 real guest save and derived incremental index do not execute
+ok 40 - PAR-01 real guest save and derived incremental index do not execute
+  ---
+  duration_ms: 930.351334
+  type: 'test'
+  ...
+# Subtest: PAR-02 cold search/link indexes and lazy match contexts share safe parser
+ok 41 - PAR-02 cold search/link indexes and lazy match contexts share safe parser
+  ---
+  duration_ms: 225.917417
+  type: 'test'
+  ...
+# [api] parser-fixture PUT /notes/allowed/api.md
+# [api] parser-fixture GET /notes/allowed/api.md
+# [api] parser-fixture GET /notes/allowed/good.md
+# Subtest: PAR-02 API key read/write uses same safe parser; legitimate scopes remain
+ok 42 - PAR-02 API key read/write uses same safe parser; legitimate scopes remain
+  ---
+  duration_ms: 395.273334
+  type: 'test'
+  ...
+# Subtest: PAR-02 real SSR/public-share rendering treats hostile frontmatter as text
+ok 43 - PAR-02 real SSR/public-share rendering treats hostile frontmatter as text
+  ---
+  duration_ms: 132.756042
+  type: 'test'
+  ...
+# Subtest: PATH-02 mutation authorization, disk write and indexes share a stable Vault/settings snapshot
+ok 44 - PATH-02 mutation authorization, disk write and indexes share a stable Vault/settings snapshot
+  ---
+  duration_ms: 1360.038583
+  type: 'test'
+  ...
+# Subtest: PATH-01–11 canonical object authorization and no side effects
+    # Subtest: PATH-01 allowed write/read/search remains available; direct private denied
+    ok 1 - PATH-01 allowed write/read/search remains available; direct private denied
+      ---
+      duration_ms: 3831.245458
+      type: 'test'
+      ...
+    # Subtest: PATH-02/03 final dotdot target and content escape denied for guest/owner
+    ok 2 - PATH-02/03 final dotdot target and content escape denied for guest/owner
+      ---
+      duration_ms: 7831.236083
+      type: 'test'
+      ...
+    # Subtest: PATH-04/05 symlink private/external, existing and missing descendants denied
+    ok 3 - PATH-04/05 symlink private/external, existing and missing descendants denied
+      ---
+      duration_ms: 23048.342708
+      type: 'test'
+      ...
+    # Subtest: PATH-06/07 rename/copy both endpoints and recursive hidden entries preflighted
+    ok 4 - PATH-06/07 rename/copy both endpoints and recursive hidden entries preflighted
+      ---
+      duration_ms: 10731.668375
+      type: 'test'
+      ...
+    # Subtest: PATH-08 encoded query delete denied in permanent and trash modes
+    ok 5 - PATH-08 encoded query delete denied in permanent and trash modes
+      ---
+      duration_ms: 1922.219916
+      type: 'test'
+      ...
+    # Subtest: PATH-09 portable syntax, unicode, repeated separators and no double decoding
+    ok 6 - PATH-09 portable syntax, unicode, repeated separators and no double decoding
+      ---
+      duration_ms: 11300.622166
+      type: 'test'
+      ...
+    # Subtest: PATH-10 .git direct/case/symlink aliases and nested metadata blocked
+    ok 7 - PATH-10 .git direct/case/symlink aliases and nested metadata blocked
+      ---
+      duration_ms: 4647.519917
+      type: 'test'
+      ...
+# [api] fixture-path-key PUT /notes/private/key-legal.md
+# [api] fixture-path-key PUT /notes/.git/config
+# [api] fixture-path-key PUT /notes/..%2Foutside-content.md
+# [api] fixture-path-key PUT /notes/allowed/git-alias/config
+    # Subtest: PATH-03/10 API key retains content writes but cannot reach metadata or outside roots
+    ok 8 - PATH-03/10 API key retains content writes but cannot reach metadata or outside roots
+      ---
+      duration_ms: 6469.350209
+      type: 'test'
+      ...
+    # Subtest: PATH-11 root mutations, disjoint/empty roots, invalid ancestors fail closed
+    ok 9 - PATH-11 root mutations, disjoint/empty roots, invalid ancestors fail closed
+      ---
+      duration_ms: 5768.846667
+      type: 'test'
+      ...
+    1..9
+ok 45 - PATH-01–11 canonical object authorization and no side effects
+  ---
+  duration_ms: 75696.714959
+  type: 'test'
+  ...
+# Subtest: AUTH-06 invalid JSON/schema/structure preserve both settings and immutable backup
+ok 46 - AUTH-06 invalid JSON/schema/structure preserve both settings and immutable backup
+  ---
+  duration_ms: 13491.489833
+  type: 'test'
+  ...
+# Subtest: AUTH-06 missing primary with backup is recovery, never new installation
+ok 47 - AUTH-06 missing primary with backup is recovery, never new installation
+  ---
+  duration_ms: 2626.113959
+  type: 'test'
+  ...
+# Subtest: AUTH-06 unreadable existing settings fails closed without replacement
+ok 48 - AUTH-06 unreadable existing settings fails closed without replacement
+  ---
+  duration_ms: 2448.089625
+  type: 'test'
+  ...
+# Subtest: AUTH-06 failed persistence does not update live cache or replace settings/backup
+ok 49 - AUTH-06 failed persistence does not update live cache or replace settings/backup
+  ---
+  duration_ms: 3165.0885
+  type: 'test'
+  ...
+# Subtest: AUTH-02 legacy strong password migrates intact and explicit recovery never enables retired default
+ok 50 - AUTH-02 legacy strong password migrates intact and explicit recovery never enables retired default
+  ---
+  duration_ms: 6000.46475
+  type: 'test'
+  ...
+# Subtest: AUTH-02 short/default recovery credential cannot initialize or authenticate
+ok 51 - AUTH-02 short/default recovery credential cannot initialize or authenticate
+  ---
+  duration_ms: 9987.957125
+  type: 'test'
+  ...
+# Subtest: AUTH-02 setup capability remains consumed after process restart
+ok 52 - AUTH-02 setup capability remains consumed after process restart
+  ---
+  duration_ms: 20044.940125
+  type: 'test'
+  ...
+# Subtest: AUTH-06 real server entrypoint exits before readiness on corrupted settings
+not ok 53 - AUTH-06 real server entrypoint exits before readiness on corrupted settings
+  ---
+  duration_ms: 6826.879417
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/settings.test.ts:21:1619'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    null !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: ~
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/settings.test.ts:141:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: AUTH-06 truncated persisted auth cannot default credentials away or reopen setup
+ok 54 - AUTH-06 truncated persisted auth cannot default credentials away or reopen setup
+  ---
+  duration_ms: 102737.419709
+  type: 'test'
+  ...
+# Subtest: AUTH-06 true legacy single-hash format migrates with exact old bytes retained
+ok 55 - AUTH-06 true legacy single-hash format migrates with exact old bytes retained
+  ---
+  duration_ms: 2302.626416
+  type: 'test'
+  ...
+# Subtest: AUTH-06 symlink and non-regular primary files are refused without touching targets or backup
+ok 56 - AUTH-06 symlink and non-regular primary files are refused without touching targets or backup
+  ---
+  duration_ms: 5685.525625
+  type: 'test'
+  ...
+# Subtest: SHARE-01 owner creates password shares, guest cannot manage them
+ok 57 - SHARE-01 owner creates password shares, guest cannot manage them
+  ---
+  duration_ms: 1206.212542
+  type: 'test'
+  ...
+# Subtest: SHARE-01 correct password unlocks only its share and uses Secure cookie behind trusted TLS proxy
+ok 58 - SHARE-01 correct password unlocks only its share and uses Secure cookie behind trusted TLS proxy
+  ---
+  duration_ms: 213.902625
+  type: 'test'
+  ...
+# Subtest: SHARE-01 changing a share password invalidates earlier unlock cookies and disabling rejects reads
+ok 59 - SHARE-01 changing a share password invalidates earlier unlock cookies and disabling rejects reads
+  ---
+  duration_ms: 113.904292
+  type: 'test'
+  ...
+# Subtest: SHARE-01 repeated wrong passwords are throttled without modifying content or share records
+ok 60 - SHARE-01 repeated wrong passwords are throttled without modifying content or share records
+  ---
+  duration_ms: 2219.285167
+  type: 'test'
+  ...
+# Subtest: Integrated server: isolated startup, protected setup, owner edit/read and same-origin guard
+ok 61 - Integrated server: isolated startup, protected setup, owner edit/read and same-origin guard
+  ---
+  duration_ms: 8661.889458
+  type: 'test'
+  ...
+# Subtest: WEB-01/02 cross-origin JSON and multipart rejected before mutation; same-origin/native allowed
+ok 62 - WEB-01/02 cross-origin JSON and multipart rejected before mutation; same-origin/native allowed
+  ---
+  duration_ms: 476.352083
+  type: 'test'
+  ...
+# Subtest: WS-01 absent/guest/malformed-cookie/cross-origin upgrades rejected
+ok 63 - WS-01 absent/guest/malformed-cookie/cross-origin upgrades rejected
+  ---
+  duration_ms: 28.009166
+  type: 'test'
+  ...
+# Subtest: WS-01 owner receives events; revoked session receives no subsequent event
+ok 64 - WS-01 owner receives events; revoked session receives no subsequent event
+  ---
+  duration_ms: 162.061792
+  type: 'test'
+  ...
+# Subtest: LOG-01 URL credentials and query secrets are redacted
+ok 65 - LOG-01 URL credentials and query secrets are redacted
+  ---
+  duration_ms: 1.059417
+  type: 'test'
+  ...
+# Subtest: UPL-01–06 bounded, authorized uploads and cleanup
+    # Subtest: UPL-01 missing/empty dir cannot write content root for guest
+    ok 1 - UPL-01 missing/empty dir cannot write content root for guest
+      ---
+      duration_ms: 4152.363084
+      type: 'test'
+      ...
+    # Subtest: UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+    ok 2 - UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+      ---
+      duration_ms: 14101.930625
+      type: 'test'
+      ...
+    # Subtest: UPL-03/04 image fallback preauthorization does not expand attachment scope
+    ok 3 - UPL-03/04 image fallback preauthorization does not expand attachment scope
+      ---
+      duration_ms: 5511.741
+      type: 'test'
+      ...
+    # Subtest: UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+    ok 4 - UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+      ---
+      duration_ms: 2901.964791
+      type: 'test'
+      ...
+    # Subtest: UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+    ok 5 - UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+      ---
+      duration_ms: 2056.311375
+      type: 'test'
+      ...
+    # Subtest: UPL-06 concurrency and deadline reject without creating final files
+    ok 6 - UPL-06 concurrency and deadline reject without creating final files
+      ---
+      duration_ms: 1063.9505
+      type: 'test'
+      ...
+    # Subtest: UPL-06 interrupted client removes temporary data and releases slot
+    ok 7 - UPL-06 interrupted client removes temporary data and releases slot
+      ---
+      duration_ms: 482.941583
+      type: 'test'
+      ...
+# [error] 图床返回 400 
+# UploadError: 图床返回 400
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:95:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 403 
+# UploadError: 图床返回 403
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:95:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 429 
+# UploadError: 图床返回 429
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:95:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 500 
+# UploadError: 图床返回 500
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:95:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床连接失败或超时 
+# UploadError: 图床连接失败或超时
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:73:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+    # Subtest: UPL-04 owner mock success/errors/timeout redact body/key; guest never forwards
+    ok 8 - UPL-04 owner mock success/errors/timeout redact body/key; guest never forwards
+      ---
+      duration_ms: 6472.5565
+      type: 'test'
+      ...
+    1..8
+ok 66 - UPL-01–06 bounded, authorized uploads and cleanup
+  ---
+  duration_ms: 39440.835708
+  type: 'test'
+  ...
+1..66
+# tests 83
+# suites 0
+# pass 82
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 520878.442666

@@ -1,0 +1,70 @@
+TAP version 13
+# Subtest: UPL-01–06 bounded, authorized uploads and cleanup
+    # Subtest: UPL-01 missing/empty dir cannot write content root for guest
+    ok 1 - UPL-01 missing/empty dir cannot write content root for guest
+      ---
+      duration_ms: 164.610917
+      type: 'test'
+      ...
+    # Subtest: UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+    ok 2 - UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+      ---
+      duration_ms: 377.059625
+      type: 'test'
+      ...
+    # Subtest: UPL-03/04 image fallback preauthorization does not expand attachment scope
+    ok 3 - UPL-03/04 image fallback preauthorization does not expand attachment scope
+      ---
+      duration_ms: 332.332333
+      type: 'test'
+      ...
+    # Subtest: UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+    ok 4 - UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+      ---
+      duration_ms: 385.144709
+      type: 'test'
+      ...
+    # Subtest: UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+    ok 5 - UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+      ---
+      duration_ms: 162.673542
+      type: 'test'
+      ...
+    # Subtest: UPL-06 concurrency and deadline reject without creating final files
+    ok 6 - UPL-06 concurrency and deadline reject without creating final files
+      ---
+      duration_ms: 203.546083
+      type: 'test'
+      ...
+    # Subtest: UPL-06 interrupted client removes temporary data and releases slot
+    ok 7 - UPL-06 interrupted client removes temporary data and releases slot
+      ---
+      duration_ms: 126.5005
+      type: 'test'
+      ...
+# [error] 图床返回 500 
+# UploadError: 图床返回 500
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:92:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+    # Subtest: UPL-04 owner external mock errors redact body/key; guest never forwards
+    ok 8 - UPL-04 owner external mock errors redact body/key; guest never forwards
+      ---
+      duration_ms: 71.08375
+      type: 'test'
+      ...
+    1..8
+ok 1 - UPL-01–06 bounded, authorized uploads and cleanup
+  ---
+  duration_ms: 1827.330833
+  type: 'test'
+  ...
+1..1
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2085.128083

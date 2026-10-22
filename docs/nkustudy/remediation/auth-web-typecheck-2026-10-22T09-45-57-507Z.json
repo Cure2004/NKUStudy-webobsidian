@@ -1,0 +1,17 @@
+{
+  "name": "auth-web-typecheck",
+  "command": [
+    "npm",
+    "--workspace",
+    "web",
+    "run",
+    "typecheck"
+  ],
+  "startedAt": "2026-10-22T09:45:57.507Z",
+  "endedAt": "2026-10-22T09:45:59.783Z",
+  "exitCode": 0,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "auth-web-typecheck-2026-10-22T09-45-57-507Z.log"
+}

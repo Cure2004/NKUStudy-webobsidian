@@ -1,0 +1,15 @@
+{
+  "name": "parser-bounded",
+  "command": [
+    "npm",
+    "run",
+    "test:parser"
+  ],
+  "startedAt": "2026-10-22T09:38:45.518Z",
+  "endedAt": "2026-10-22T09:38:51.954Z",
+  "exitCode": 0,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "parser-bounded-2026-10-22T09-38-45-518Z.log"
+}

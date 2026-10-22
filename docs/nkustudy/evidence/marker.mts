@@ -1,0 +1,13 @@
+import express from 'express';import fs from 'node:fs/promises';import path from 'node:path';
+process.env.DATA_DIR=path.resolve('rce-fixture/data');process.env.VAULT_PATH=path.resolve('rce-fixture/vault');
+const {updateSettings}=await import('../server/src/services/settings.ts');
+const {filesRouter}=await import('../server/src/routes/files.ts');const {errorHandler}=await import('../server/src/middleware/error.ts');
+await fs.mkdir(process.env.VAULT_PATH,{recursive:true});
+await updateSettings(s=>{s.vault.path=process.env.VAULT_PATH;s.publicEditor.enabled=true;s.publicEditor.editableRoot='allowed';s.git.enabled=false;s.git.autoCommitOnSave=false;});
+const app=express();app.use(express.json());app.use('/api/files',filesRouter);app.use(errorHandler);
+const server=await new Promise(r=>{const s=app.listen(0,'127.0.0.1',()=>r(s));});
+const content='---javascript\n(()=>{globalThis.__NKU_AUDIT_MARKER="fixture-executed";return {title:"harmless marker"};})()\n---\nfixture';
+const response=await fetch('http://127.0.0.1:'+server.address().port+'/api/files/content',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'allowed/marker.md',content})});
+await new Promise(r=>setTimeout(r,300));
+const result={id:'guest-markdown-javascript-engine',status:response.status,marker:globalThis.__NKU_AUDIT_MARKER??null,effect:'in-process marker only; no command, credential read, or external network'};
+await fs.writeFile('marker-results.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result));server.close();setTimeout(()=>process.exit(0),100);

@@ -1,0 +1,623 @@
+TAP version 13
+# Subtest: PATH-01–11 canonical object authorization and no side effects
+    # Subtest: PATH-01 allowed write/read/search remains available; direct private denied
+    ok 1 - PATH-01 allowed write/read/search remains available; direct private denied
+      ---
+      duration_ms: 116.1755
+      type: 'test'
+      ...
+    # Subtest: PATH-02/03 final dotdot target and content escape denied for guest/owner
+    ok 2 - PATH-02/03 final dotdot target and content escape denied for guest/owner
+      ---
+      duration_ms: 224.277958
+      type: 'test'
+      ...
+    # Subtest: PATH-04/05 symlink private/external, existing and missing descendants denied
+    ok 3 - PATH-04/05 symlink private/external, existing and missing descendants denied
+      ---
+      duration_ms: 580.020167
+      type: 'test'
+      ...
+    # Subtest: PATH-06/07 rename/copy both endpoints and recursive hidden entries preflighted
+    ok 4 - PATH-06/07 rename/copy both endpoints and recursive hidden entries preflighted
+      ---
+      duration_ms: 541.25525
+      type: 'test'
+      ...
+    # Subtest: PATH-08 encoded query delete denied in permanent and trash modes
+    ok 5 - PATH-08 encoded query delete denied in permanent and trash modes
+      ---
+      duration_ms: 136.236042
+      type: 'test'
+      ...
+    # Subtest: PATH-09 portable syntax, unicode, repeated separators and no double decoding
+    ok 6 - PATH-09 portable syntax, unicode, repeated separators and no double decoding
+      ---
+      duration_ms: 305.809375
+      type: 'test'
+      ...
+    # Subtest: PATH-10 .git direct/case/symlink aliases and nested metadata blocked
+    ok 7 - PATH-10 .git direct/case/symlink aliases and nested metadata blocked
+      ---
+      duration_ms: 319.241459
+      type: 'test'
+      ...
+# [api] fixture-path-key PUT /notes/private/key-legal.md
+# [api] fixture-path-key PUT /notes/.git/config
+    # Subtest: PATH-03/10 API key retains content writes but cannot reach metadata or outside roots
+    not ok 8 - PATH-03/10 API key retains content writes but cannot reach metadata or outside roots
+      ---
+      duration_ms: 73.601667
+      type: 'test'
+      location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/paths.test.ts:1:9015'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly deep-equal:
+        + actual - expected
+        ... Skipped lines
+        
+          {
+            graph: {
+              edges: [],
+              nodes: [
+                {
+        ...
+                path: 'allowed/sentinel.md',
+        +       score: 14.025293430419945,
+        -       score: 13.873566039086588,
+                snippet: '# Sentinel allowed',
+                tags: [],
+                title: 'sentinel'
+              },
+              {
+                path: 'private/sentinel.md',
+        +       score: 14.025293430419945,
+        -       score: 13.873566039086588,
+                snippet: '# Sentinel private',
+                tags: [],
+                title: 'sentinel'
+              },
+              {
+        +       path: 'allowed/tree/first.md',
+        +       score: 0.10021877386414585,
+        +       snippet: 'sentinel',
+        -       path: 'private/key-legal.md',
+        -       score: 0.0870508884739699,
+        -       snippet: 'sentinel key',
+                tags: [],
+        +       title: 'first'
+        -       title: 'key-legal'
+              },
+              {
+                path: 'allowed/%252e%252e/literal.md',
+        +       score: 0.0870508884739699,
+        -       score: -0.08234307659543083,
+                snippet: 'sentinel unicode',
+                tags: [],
+                title: 'literal'
+              },
+              {
+                path: 'allowed/%2e%2e/literal.md',
+        +       score: 0.0870508884739699,
+        -       score: -0.08234307659543083,
+                snippet: 'sentinel unicode',
+                tags: [],
+                title: 'literal'
+              },
+              {
+                path: 'allowed/valid.md',
+        +       score: 0.0870508884739699,
+        -       score: -0.08234307659543083,
+                snippet: 'sentinel valid',
+                tags: [],
+                title: 'Valid note'
+              },
+              {
+                path: 'allowed/中文.md',
+        +       score: 0.0870508884739699,
+        -       score: -0.08234307659543083,
+                snippet: 'sentinel unicode',
+                tags: [],
+                title: '中文'
+              },
+              {
+        +       path: 'private/key-legal.md',
+        +       score: 0.0870508884739699,
+        +       snippet: 'sentinel key',
+        -       path: 'allowed/tree/first.md',
+        -       score: -0.09479882764278903,
+        -       snippet: 'sentinel',
+                tags: [],
+        +       title: 'key-legal'
+        -       title: 'first'
+              }
+            ],
+            status: '?? content/.trash/\n' +
+              '?? content/allowed/%252e%252e/\n' +
+              '?? content/allowed/%2e%2e/\n' +
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+        tree:
+          : 'directory'
+          .git: 'directory'
+          .git/COMMIT_EDITMSG: 'e80b71cd14d3cbd65f4173abcbfcf01a545dbca32a72d575108b553a648cc96f'
+          .git/HEAD: '915b4fa4cb151d59ad3b20c3c43bc9ee2cb9755ed1de59c363bd64720e3297fc'
+          .git/config: 'f996b0cc441112e3799dba3d014066cce81f0c52a4f96127ef785ba94e123749'
+          .git/description: '85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee'
+          .git/hooks: 'directory'
+          .git/hooks/applypatch-msg.sample: '0223497a0b8b033aa58a3a521b8629869386cf7ab0e2f101963d328aa62193f7'
+          .git/hooks/commit-msg.sample: '1f74d5e9292979b573ebd59741d46cb93ff391acdd083d340b94370753d92437'
+          .git/hooks/fsmonitor-watchman.sample: 'e0549964e93897b519bd8e333c037e51fff0f88ba13e086a331592bf801fa1d0'
+          .git/hooks/post-update.sample: '81765af2daef323061dcbc5e61fc16481cb74b3bac9ad8a174b186523586f6c5'
+          .git/hooks/pre-applypatch.sample: 'e15c5b469ea3e0a695bea6f2c82bcf8e62821074939ddd85b77e0007ff165475'
+          .git/hooks/pre-commit.sample: '57185b7b9f05239d7ab52db045f5b89eb31348d7b2177eab214f5eb872e1971b'
+          .git/hooks/pre-merge-commit.sample: 'd3825a70337940ebbd0a5c072984e13245920cdf8898bd225c8d27a6dfc9cb53'
+          .git/hooks/pre-push.sample: 'ecce9c7e04d3f5dd9d8ada81753dd1d549a9634b26770042b58dda00217d086a'
+          .git/hooks/pre-rebase.sample: '4febce867790052338076f4e66cc47efb14879d18097d1d61c8261859eaaa7b3'
+          .git/hooks/pre-receive.sample: 'a4c3d2b9c7bb3fd8d1441c31bd4ee71a595d66b44fcf49ddb310252320169989'
+          .git/hooks/prepare-commit-msg.sample: 'e9ddcaa4189fddd25ed97fc8c789eca7b6ca16390b2392ae3276f0c8e1aa4619'
+          .git/hooks/push-to-checkout.sample: 'a53d0741798b287c6dd7afa64aee473f305e65d3f49463bb9d7408ec3b12bf5f'
+          .git/hooks/sendemail-validate.sample: '44ebfc923dc5466bc009602f0ecf067b9c65459abfe8868ddc49b78e6ced7a92'
+          .git/hooks/update.sample: '8d5f2fa83e103cf08b57eaa67521df9194f45cbdbcb37da52ad586097a14d106'
+          .git/index: '0381c39742744b041d0d447b19bccd5fe5d743d9d2b534349198433360b4edfa'
+          .git/info: 'directory'
+          .git/info/exclude: '6671fe83b7a07c8932ee89164d1f2793b2318058eb8b98dc5c06ee0a5a3b0ec1'
+          .git/logs: 'directory'
+          .git/logs/HEAD: 'f4afe59859a0525a87057dcb0e54d9e3092177b17d8e513c53093caf74b3f5bd'
+          .git/logs/refs: 'directory'
+          .git/logs/refs/heads: 'directory'
+          .git/logs/refs/heads/fixture: 'f4afe59859a0525a87057dcb0e54d9e3092177b17d8e513c53093caf74b3f5bd'
+          .git/objects: 'directory'
+          .git/objects/2f: 'directory'
+          .git/objects/2f/c944fa7b12ce6dd37bc85b4564b53203442463: '01b27def1fa9039aa7ce0ebf13eb58e9033583b37a0498e20376b1954a9a8701'
+          .git/objects/79: 'directory'
+          .git/objects/79/7697c31229a5e8408381209f27b856d417922c: 'f1fbc76ca6123c27318c76ec9ff276c765ad50b4315dce83c2911c85798997c1'
+          .git/objects/86: 'directory'
+          .git/objects/86/e46d656e49c9385a16e60b827740ab110e6c68: '9649f621cd6c286895e6c91f1f9b13fb9e43d776238da4c52c1a0db0cc196e09'
+          .git/objects/9d: 'directory'
+          .git/objects/9d/538391d97c125567e7bf9a3d2f4aa695e8f16d: 'f4f3647102504e4ea0199fb7629a5ca9a59e8cfe9727a4063bcc15fb6b067208'
+          .git/objects/a9: 'directory'
+          .git/objects/a9/4da3cdb8d4f5441e0aa1cc66790d6536b74494: 'aed0e52555f5e3b67dc7d73f0ca2ae84f6fc59e2927660709a659ce487dd4690'
+          .git/objects/b8: 'directory'
+          .git/objects/b8/8fdd399ffc741e3de83288a917989ad22c0170: '22944e9d40085982f24a843806305b3918d1f6c5752ee5ab94b8cff6e143bac1'
+          .git/objects/d3: 'directory'
+          .git/objects/d3/99374a85f1c74010e494bba980d3ece1a8678a: 'beb614e37faf7bf298ad1e7d64c366bced806a076c3c2f1e47d08ebc6200287d'
+          .git/objects/fc: 'directory'
+          .git/objects/fc/d6e762103120168cf7751ebb90d25dfef5e975: '9c8542b5066ef8cad7275d3a57745b47e3897fd44f60b0cf858c88b9c758bd1b'
+          .git/objects/info: 'directory'
+          .git/objects/pack: 'directory'
+          .git/refs: 'directory'
+          .git/refs/heads: 'directory'
+          .git/refs/heads/fixture: '23a083954621df6823dfc942acc43898567c8f42628fc9181ba949ac98686f1c'
+          .git/refs/tags: 'directory'
+          content: 'directory'
+          content/.trash: 'directory'
+          content/.trash/allowed: 'directory'
+          content/.trash/allowed/renamed: 'directory'
+          content/.trash/allowed/renamed/first.md: '2b7847b7b705781d7cf21a05e9c1bb37cbf078aea103bc3edcc6aca52ab65453'
+          content/allowed: 'directory'
+          content/allowed/%252e%252e: 'directory'
+          content/allowed/%252e%252e/literal.md: 'd7d72fa4d02eeecceb1e67783d41edadf8a07cca232f7c556c7cdc3966806e62'
+          content/allowed/%2e%2e: 'directory'
+          content/allowed/%2e%2e/literal.md: 'd7d72fa4d02eeecceb1e67783d41edadf8a07cca232f7c556c7cdc3966806e62'
+          content/allowed/git-alias: 'link:../../.git'
+          content/allowed/link-external: 'link:../..'
+          content/allowed/link-private: 'link:../private'
+          content/allowed/renamed: 'directory'
+          content/allowed/sentinel.md: 'f74d867dc6a7b37dee0d8c39eb57eaa92a850b6057618a40f2c412478051e019'
+          content/allowed/tree: 'directory'
+          content/allowed/tree/first.md: '2b7847b7b705781d7cf21a05e9c1bb37cbf078aea103bc3edcc6aca52ab65453'
+          content/allowed/valid.md: '0406faec39f1fe1f4d4e0bf5965bb021646c3dafd18e123d1cd765401fc53386'
+          content/allowed/中文.md: 'd7d72fa4d02eeecceb1e67783d41edadf8a07cca232f7c556c7cdc3966806e62'
+          content/private: 'directory'
+          content/private/key-legal.md: 'dee40d6c97d0a78bde9dbc52f8cb19543f52b1caf61a9c3f5aad139320471861'
+          content/private/sentinel.md: '4e50c2e6ae4e8f7905ec9762db5ceeeece6ad0d56d0887bc84d8810d45b8135f'
+          outside-content.md: '31207a2065f46a5b948fce6fe5c13e85abaf5631e2f894b47dcd4fce14f6c57b'
+        search:
+          0:
+            path: 'allowed/sentinel.md'
+            title: 'sentinel'
+            score: 13.873566039086588
+            tags:
+            snippet: '# Sentinel allowed'
+          1:
+            path: 'private/sentinel.md'
+            title: 'sentinel'
+            score: 13.873566039086588
+            tags:
+            snippet: '# Sentinel private'
+          2:
+            path: 'private/key-legal.md'
+            title: 'key-legal'
+            score: 0.0870508884739699
+            tags:
+            snippet: 'sentinel key'
+          3:
+            path: 'allowed/%252e%252e/literal.md'
+            title: 'literal'
+            score: -0.08234307659543083
+            tags:
+            snippet: 'sentinel unicode'
+          4:
+            path: 'allowed/%2e%2e/literal.md'
+            title: 'literal'
+            score: -0.08234307659543083
+            tags:
+            snippet: 'sentinel unicode'
+          5:
+            path: 'allowed/valid.md'
+            title: 'Valid note'
+            score: -0.08234307659543083
+            tags:
+            snippet: 'sentinel valid'
+          6:
+            path: 'allowed/中文.md'
+            title: '中文'
+            score: -0.08234307659543083
+            tags:
+            snippet: 'sentinel unicode'
+          7:
+            path: 'allowed/tree/first.md'
+            title: 'first'
+            score: -0.09479882764278903
+            tags:
+            snippet: 'sentinel'
+        graph:
+          nodes:
+            0:
+              id: 'allowed/%252e%252e/literal.md'
+              label: 'literal'
+              kind: 'note'
+              tags:
+            1:
+              id: 'allowed/%2e%2e/literal.md'
+              label: 'literal'
+              kind: 'note'
+              tags:
+            2:
+              id: 'allowed/sentinel.md'
+              label: 'sentinel'
+              kind: 'note'
+              tags:
+            3:
+              id: 'allowed/tree/first.md'
+              label: 'first'
+              kind: 'note'
+              tags:
+            4:
+              id: 'allowed/valid.md'
+              label: 'valid'
+              kind: 'note'
+              tags:
+            5:
+              id: 'allowed/中文.md'
+              label: '中文'
+              kind: 'note'
+              tags:
+            6:
+              id: 'private/key-legal.md'
+              label: 'key-legal'
+              kind: 'note'
+              tags:
+            7:
+              id: 'private/sentinel.md'
+              label: 'sentinel'
+              kind: 'note'
+              tags:
+          edges:
+        index: |-
+          100644 a94da3cdb8d4f5441e0aa1cc66790d6536b74494 0	content/allowed/sentinel.md
+          100644 86e46d656e49c9385a16e60b827740ab110e6c68 0	content/private/sentinel.md
+          100644 797697c31229a5e8408381209f27b856d417922c 0	outside-content.md
+        status: |-
+          ?? content/.trash/
+          ?? content/allowed/%252e%252e/
+          ?? content/allowed/%2e%2e/
+          ?? content/allowed/git-alias
+          ?? content/allowed/link-external
+          ?? content/allowed/link-private
+          ?? content/allowed/tree/
+          ?? content/allowed/valid.md
+          ?? "content/allowed/\344\270\255\346\226\207.md"
+          ?? content/private/key-legal.md
+        head: 'b88fdd399ffc741e3de83288a917989ad22c0170'
+      actual:
+        tree:
+          : 'directory'
+          .git: 'directory'
+          .git/COMMIT_EDITMSG: 'e80b71cd14d3cbd65f4173abcbfcf01a545dbca32a72d575108b553a648cc96f'
+          .git/HEAD: '915b4fa4cb151d59ad3b20c3c43bc9ee2cb9755ed1de59c363bd64720e3297fc'
+          .git/config: 'f996b0cc441112e3799dba3d014066cce81f0c52a4f96127ef785ba94e123749'
+          .git/description: '85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee'
+          .git/hooks: 'directory'
+          .git/hooks/applypatch-msg.sample: '0223497a0b8b033aa58a3a521b8629869386cf7ab0e2f101963d328aa62193f7'
+          .git/hooks/commit-msg.sample: '1f74d5e9292979b573ebd59741d46cb93ff391acdd083d340b94370753d92437'
+          .git/hooks/fsmonitor-watchman.sample: 'e0549964e93897b519bd8e333c037e51fff0f88ba13e086a331592bf801fa1d0'
+          .git/hooks/post-update.sample: '81765af2daef323061dcbc5e61fc16481cb74b3bac9ad8a174b186523586f6c5'
+          .git/hooks/pre-applypatch.sample: 'e15c5b469ea3e0a695bea6f2c82bcf8e62821074939ddd85b77e0007ff165475'
+          .git/hooks/pre-commit.sample: '57185b7b9f05239d7ab52db045f5b89eb31348d7b2177eab214f5eb872e1971b'
+          .git/hooks/pre-merge-commit.sample: 'd3825a70337940ebbd0a5c072984e13245920cdf8898bd225c8d27a6dfc9cb53'
+          .git/hooks/pre-push.sample: 'ecce9c7e04d3f5dd9d8ada81753dd1d549a9634b26770042b58dda00217d086a'
+          .git/hooks/pre-rebase.sample: '4febce867790052338076f4e66cc47efb14879d18097d1d61c8261859eaaa7b3'
+          .git/hooks/pre-receive.sample: 'a4c3d2b9c7bb3fd8d1441c31bd4ee71a595d66b44fcf49ddb310252320169989'
+          .git/hooks/prepare-commit-msg.sample: 'e9ddcaa4189fddd25ed97fc8c789eca7b6ca16390b2392ae3276f0c8e1aa4619'
+          .git/hooks/push-to-checkout.sample: 'a53d0741798b287c6dd7afa64aee473f305e65d3f49463bb9d7408ec3b12bf5f'
+          .git/hooks/sendemail-validate.sample: '44ebfc923dc5466bc009602f0ecf067b9c65459abfe8868ddc49b78e6ced7a92'
+          .git/hooks/update.sample: '8d5f2fa83e103cf08b57eaa67521df9194f45cbdbcb37da52ad586097a14d106'
+          .git/index: '0381c39742744b041d0d447b19bccd5fe5d743d9d2b534349198433360b4edfa'
+          .git/info: 'directory'
+          .git/info/exclude: '6671fe83b7a07c8932ee89164d1f2793b2318058eb8b98dc5c06ee0a5a3b0ec1'
+          .git/logs: 'directory'
+          .git/logs/HEAD: 'f4afe59859a0525a87057dcb0e54d9e3092177b17d8e513c53093caf74b3f5bd'
+          .git/logs/refs: 'directory'
+          .git/logs/refs/heads: 'directory'
+          .git/logs/refs/heads/fixture: 'f4afe59859a0525a87057dcb0e54d9e3092177b17d8e513c53093caf74b3f5bd'
+          .git/objects: 'directory'
+          .git/objects/2f: 'directory'
+          .git/objects/2f/c944fa7b12ce6dd37bc85b4564b53203442463: '01b27def1fa9039aa7ce0ebf13eb58e9033583b37a0498e20376b1954a9a8701'
+          .git/objects/79: 'directory'
+          .git/objects/79/7697c31229a5e8408381209f27b856d417922c: 'f1fbc76ca6123c27318c76ec9ff276c765ad50b4315dce83c2911c85798997c1'
+          .git/objects/86: 'directory'
+          .git/objects/86/e46d656e49c9385a16e60b827740ab110e6c68: '9649f621cd6c286895e6c91f1f9b13fb9e43d776238da4c52c1a0db0cc196e09'
+          .git/objects/9d: 'directory'
+          .git/objects/9d/538391d97c125567e7bf9a3d2f4aa695e8f16d: 'f4f3647102504e4ea0199fb7629a5ca9a59e8cfe9727a4063bcc15fb6b067208'
+          .git/objects/a9: 'directory'
+          .git/objects/a9/4da3cdb8d4f5441e0aa1cc66790d6536b74494: 'aed0e52555f5e3b67dc7d73f0ca2ae84f6fc59e2927660709a659ce487dd4690'
+          .git/objects/b8: 'directory'
+          .git/objects/b8/8fdd399ffc741e3de83288a917989ad22c0170: '22944e9d40085982f24a843806305b3918d1f6c5752ee5ab94b8cff6e143bac1'
+          .git/objects/d3: 'directory'
+          .git/objects/d3/99374a85f1c74010e494bba980d3ece1a8678a: 'beb614e37faf7bf298ad1e7d64c366bced806a076c3c2f1e47d08ebc6200287d'
+          .git/objects/fc: 'directory'
+          .git/objects/fc/d6e762103120168cf7751ebb90d25dfef5e975: '9c8542b5066ef8cad7275d3a57745b47e3897fd44f60b0cf858c88b9c758bd1b'
+          .git/objects/info: 'directory'
+          .git/objects/pack: 'directory'
+          .git/refs: 'directory'
+          .git/refs/heads: 'directory'
+          .git/refs/heads/fixture: '23a083954621df6823dfc942acc43898567c8f42628fc9181ba949ac98686f1c'
+          .git/refs/tags: 'directory'
+          content: 'directory'
+          content/.trash: 'directory'
+          content/.trash/allowed: 'directory'
+          content/.trash/allowed/renamed: 'directory'
+          content/.trash/allowed/renamed/first.md: '2b7847b7b705781d7cf21a05e9c1bb37cbf078aea103bc3edcc6aca52ab65453'
+          content/allowed: 'directory'
+          content/allowed/%252e%252e: 'directory'
+          content/allowed/%252e%252e/literal.md: 'd7d72fa4d02eeecceb1e67783d41edadf8a07cca232f7c556c7cdc3966806e62'
+          content/allowed/%2e%2e: 'directory'
+          content/allowed/%2e%2e/literal.md: 'd7d72fa4d02eeecceb1e67783d41edadf8a07cca232f7c556c7cdc3966806e62'
+          content/allowed/git-alias: 'link:../../.git'
+          content/allowed/link-external: 'link:../..'
+          content/allowed/link-private: 'link:../private'
+          content/allowed/renamed: 'directory'
+          content/allowed/sentinel.md: 'f74d867dc6a7b37dee0d8c39eb57eaa92a850b6057618a40f2c412478051e019'
+          content/allowed/tree: 'directory'
+          content/allowed/tree/first.md: '2b7847b7b705781d7cf21a05e9c1bb37cbf078aea103bc3edcc6aca52ab65453'
+          content/allowed/valid.md: '0406faec39f1fe1f4d4e0bf5965bb021646c3dafd18e123d1cd765401fc53386'
+          content/allowed/中文.md: 'd7d72fa4d02eeecceb1e67783d41edadf8a07cca232f7c556c7cdc3966806e62'
+          content/private: 'directory'
+          content/private/key-legal.md: 'dee40d6c97d0a78bde9dbc52f8cb19543f52b1caf61a9c3f5aad139320471861'
+          content/private/sentinel.md: '4e50c2e6ae4e8f7905ec9762db5ceeeece6ad0d56d0887bc84d8810d45b8135f'
+          outside-content.md: '31207a2065f46a5b948fce6fe5c13e85abaf5631e2f894b47dcd4fce14f6c57b'
+        search:
+          0:
+            path: 'allowed/sentinel.md'
+            title: 'sentinel'
+            score: 14.025293430419945
+            tags:
+            snippet: '# Sentinel allowed'
+          1:
+            path: 'private/sentinel.md'
+            title: 'sentinel'
+            score: 14.025293430419945
+            tags:
+            snippet: '# Sentinel private'
+          2:
+            path: 'allowed/tree/first.md'
+            title: 'first'
+            score: 0.10021877386414585
+            tags:
+            snippet: 'sentinel'
+          3:
+            path: 'allowed/%252e%252e/literal.md'
+            title: 'literal'
+            score: 0.0870508884739699
+            tags:
+            snippet: 'sentinel unicode'
+          4:
+            path: 'allowed/%2e%2e/literal.md'
+            title: 'literal'
+            score: 0.0870508884739699
+            tags:
+            snippet: 'sentinel unicode'
+          5:
+            path: 'allowed/valid.md'
+            title: 'Valid note'
+            score: 0.0870508884739699
+            tags:
+            snippet: 'sentinel valid'
+          6:
+            path: 'allowed/中文.md'
+            title: '中文'
+            score: 0.0870508884739699
+            tags:
+            snippet: 'sentinel unicode'
+          7:
+            path: 'private/key-legal.md'
+            title: 'key-legal'
+            score: 0.0870508884739699
+            tags:
+            snippet: 'sentinel key'
+        graph:
+          nodes:
+            0:
+              id: 'allowed/%252e%252e/literal.md'
+              label: 'literal'
+              kind: 'note'
+              tags:
+            1:
+              id: 'allowed/%2e%2e/literal.md'
+              label: 'literal'
+              kind: 'note'
+              tags:
+            2:
+              id: 'allowed/sentinel.md'
+              label: 'sentinel'
+              kind: 'note'
+              tags:
+            3:
+              id: 'allowed/tree/first.md'
+              label: 'first'
+              kind: 'note'
+              tags:
+            4:
+              id: 'allowed/valid.md'
+              label: 'valid'
+              kind: 'note'
+              tags:
+            5:
+              id: 'allowed/中文.md'
+              label: '中文'
+              kind: 'note'
+              tags:
+            6:
+              id: 'private/key-legal.md'
+              label: 'key-legal'
+              kind: 'note'
+              tags:
+            7:
+              id: 'private/sentinel.md'
+              label: 'sentinel'
+              kind: 'note'
+              tags:
+          edges:
+        index: |-
+          100644 a94da3cdb8d4f5441e0aa1cc66790d6536b74494 0	content/allowed/sentinel.md
+          100644 86e46d656e49c9385a16e60b827740ab110e6c68 0	content/private/sentinel.md
+          100644 797697c31229a5e8408381209f27b856d417922c 0	outside-content.md
+        status: |-
+          ?? content/.trash/
+          ?? content/allowed/%252e%252e/
+          ?? content/allowed/%2e%2e/
+          ?? content/allowed/git-alias
+          ?? content/allowed/link-external
+          ?? content/allowed/link-private
+          ?? content/allowed/tree/
+          ?? content/allowed/valid.md
+          ?? "content/allowed/\344\270\255\346\226\207.md"
+          ?? content/private/key-legal.md
+        head: 'b88fdd399ffc741e3de83288a917989ad22c0170'
+      operator: 'deepStrictEqual'
+      stack: |-
+        TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/paths.test.ts:126:65)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async TestContext.<anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/paths.test.ts:118:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: PATH-11 root mutations, disjoint/empty roots, invalid ancestors fail closed
+    ok 9 - PATH-11 root mutations, disjoint/empty roots, invalid ancestors fail closed
+      ---
+      duration_ms: 359.852958
+      type: 'test'
+      ...
+    1..9
+not ok 1 - PATH-01–11 canonical object authorization and no side effects
+  ---
+  duration_ms: 2662.217167
+  type: 'test'
+  location: '/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/test/paths.test.ts:1:4817'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: UPL-01–06 bounded, authorized uploads and cleanup
+    # Subtest: UPL-01 missing/empty dir cannot write content root for guest
+    ok 1 - UPL-01 missing/empty dir cannot write content root for guest
+      ---
+      duration_ms: 187.944541
+      type: 'test'
+      ...
+    # Subtest: UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+    ok 2 - UPL-02 final canonical directory: allowed succeeds, private/dotdot/symlink denied
+      ---
+      duration_ms: 395.2615
+      type: 'test'
+      ...
+    # Subtest: UPL-03/04 image fallback preauthorization does not expand attachment scope
+    ok 3 - UPL-03/04 image fallback preauthorization does not expand attachment scope
+      ---
+      duration_ms: 358.939875
+      type: 'test'
+      ...
+    # Subtest: UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+    ok 4 - UPL-05 filename traversal/collision, MIME spoof and SVG are controlled
+      ---
+      duration_ms: 403.583791
+      type: 'test'
+      ...
+    # Subtest: UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+    ok 5 - UPL-06 N-1/N accepted, N+1 rejected; malformed multipart cleaned
+      ---
+      duration_ms: 158.774042
+      type: 'test'
+      ...
+    # Subtest: UPL-06 concurrency and deadline reject without creating final files
+    ok 6 - UPL-06 concurrency and deadline reject without creating final files
+      ---
+      duration_ms: 186.255084
+      type: 'test'
+      ...
+    # Subtest: UPL-06 interrupted client removes temporary data and releases slot
+    ok 7 - UPL-06 interrupted client removes temporary data and releases slot
+      ---
+      duration_ms: 109.057083
+      type: 'test'
+      ...
+# [error] 图床返回 400 
+# UploadError: 图床返回 400
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:94:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 403 
+# UploadError: 图床返回 403
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:94:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 429 
+# UploadError: 图床返回 429
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:94:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床返回 500 
+# UploadError: 图床返回 500
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:94:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+# [error] 图床连接失败或超时 
+# UploadError: 图床连接失败或超时
+#     at uploadImage (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/services/upload.ts:72:11)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+#     at async <anonymous> (/Users/carlos/Documents/ChatGPT/New project 3/NKUStudy-webobsidian/server/src/routes/files.ts:162:23)
+    # Subtest: UPL-04 owner mock success/errors/timeout redact body/key; guest never forwards
+    ok 8 - UPL-04 owner mock success/errors/timeout redact body/key; guest never forwards
+      ---
+      duration_ms: 523.2515
+      type: 'test'
+      ...
+    1..8
+ok 2 - UPL-01–06 bounded, authorized uploads and cleanup
+  ---
+  duration_ms: 2327.845292
+  type: 'test'
+  ...
+1..2
+# tests 19
+# suites 0
+# pass 17
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8077.826334

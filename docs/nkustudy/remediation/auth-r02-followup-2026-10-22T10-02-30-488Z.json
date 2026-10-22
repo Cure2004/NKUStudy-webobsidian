@@ -1,0 +1,20 @@
+{
+  "name": "auth-r02-followup",
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "--test-concurrency=1",
+    "server/test/auth.test.ts",
+    "server/test/settings.test.ts",
+    "server/test/shares.test.ts"
+  ],
+  "startedAt": "2026-10-22T10:02:30.488Z",
+  "endedAt": "2026-10-22T10:02:44.785Z",
+  "exitCode": 0,
+  "node": "v22.23.4",
+  "platform": "darwin",
+  "arch": "arm64",
+  "log": "auth-r02-followup-2026-10-22T10-02-30-488Z.log"
+}

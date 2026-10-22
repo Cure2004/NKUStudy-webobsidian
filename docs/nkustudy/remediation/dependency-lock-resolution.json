@@ -1,0 +1,5 @@
+{
+  "method": "isolated npm resolver reused frozen lock; targeted package subtrees resolved plus npm dedupe; validated production dependency graph",
+  "exitCode": 0,
+  "graphExitCode": 0
+}
