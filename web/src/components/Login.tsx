@@ -8,6 +8,7 @@ export default function Login({ onAuthed, overlay = false }: { onAuthed: () => v
   const setMustChangePassword = useStore((s) => s.setMustChangePassword);
   const [needSetup, setNeedSetup] = useState(false);
   const [password, setPassword] = useState('');
+  const [setupToken, setSetupToken] = useState('');
   const [confirm, setConfirm] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -26,7 +27,7 @@ export default function Login({ onAuthed, overlay = false }: { onAuthed: () => v
     setBusy(true);
     try {
       if (needSetup) {
-        await api.setup(password);
+        await api.setup(password, setupToken);
         setMustChangePassword(false); // a freshly-set password is already custom
       } else {
         const r = await api.login(password);
@@ -54,10 +55,17 @@ export default function Login({ onAuthed, overlay = false }: { onAuthed: () => v
           className="text-input"
           type="password"
           placeholder={t('Password')}
+          minLength={needSetup ? 12 : undefined}
+          maxLength={1024}
           autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        {needSetup && (
+          <input className="text-input" type="password" autoComplete="off"
+            aria-label="One-time setup credential" placeholder="One-time setup credential"
+            value={setupToken} onChange={(e) => setSetupToken(e.target.value)} />
+        )}
         {needSetup && (
           <input
             className="text-input"

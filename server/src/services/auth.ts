@@ -7,9 +7,9 @@ import { config } from '../config.js';
 const scryptAsync = promisify(scrypt);
 const KEYLEN = 64;
 
-/** Mật khẩu mặc định khi cài đặt — dùng được ngay, không cần bước setup. */
-export const DEFAULT_PASSWORD = '123456';
-export const MIN_PASSWORD_LEN = 6;
+const RETIRED_DEFAULT_PASSWORD = '123456';
+export const MIN_PASSWORD_LEN = 12;
+const MAX_PASSWORD_LEN = 1024;
 
 /** So sánh chuỗi an toàn về timing (cho override pass dạng plaintext). */
 function safeEqualStr(a: string, b: string): boolean {
@@ -34,76 +34,110 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return derived.length === expected.length && timingSafeEqual(derived, expected);
 }
 
-/**
- * Luôn true: hệ thống luôn có mật khẩu đăng nhập hiệu dụng (tối thiểu là mặc
- * định 123456). Giữ lại cho `/auth/status` và endpoint setup legacy.
- */
+/** An explicitly configured strong recovery credential also supports desktop auto-login. */
+function recoveryPassword(): string | undefined {
+  const value = config.initialPassword;
+  return value && value.length >= MIN_PASSWORD_LEN && value.length <= MAX_PASSWORD_LEN && value !== RETIRED_DEFAULT_PASSWORD
+    ? value : undefined;
+}
+
 export async function isPasswordSet(): Promise<boolean> {
-  return true;
-}
-
-/** Đã đổi pass khỏi mặc định chưa? */
-export async function hasCustomPassword(): Promise<boolean> {
   const s = await getSettings();
-  return Boolean(s.auth.userPasswordHash);
+  return Boolean(s.auth.userPasswordHash || s.auth.passwordHash || recoveryPassword());
 }
 
-/** Lưu mật khẩu người dùng mới (ghi đè pass mặc định/pass cũ). */
-export async function setUserPassword(password: string): Promise<void> {
-  if (password.length < MIN_PASSWORD_LEN) {
-    throw new Error(`Password must be at least ${MIN_PASSWORD_LEN} characters`);
+export async function hasCustomPassword(): Promise<boolean> {
+  return Boolean((await getSettings()).auth.userPasswordHash);
+}
+
+function validateNewPassword(password: string): void {
+  if (password.length < MIN_PASSWORD_LEN || password.length > MAX_PASSWORD_LEN || password === RETIRED_DEFAULT_PASSWORD) {
+    throw Object.assign(new Error(`Password must be between ${MIN_PASSWORD_LEN} and ${MAX_PASSWORD_LEN} characters`), { status: 400 });
   }
-  const hash = await hashPassword(password);
-  await updateSettings((d) => {
-    d.auth.userPasswordHash = hash;
+}
+
+/** Protected, once-only setup. The persistent hash consumes the setup capability. */
+export async function initializeUserPassword(token: string, password: string): Promise<string> {
+  validateNewPassword(password);
+  const expected = process.env.WEBOBSIDIAN_SETUP_TOKEN;
+  if (!expected || expected.length < 32 || expected.length > 1024 || token.length > 1024 || !safeEqualStr(token, expected)) {
+    throw Object.assign(new Error('Setup credential required or invalid'), { status: 403 });
+  }
+  const persisted = await updateSettings(async (draft) => {
+    if (draft.auth.userPasswordHash || draft.auth.passwordHash) {
+      throw Object.assign(new Error('Password already set'), { status: 409 });
+    }
+    draft.auth.userPasswordHash = await hashPassword(password);
+    draft.auth.sessionVersion += 1;
+    draft.auth.jwtSecret = randomBytes(48).toString('hex');
+  });
+  return signOwner(persisted.auth);
+}
+
+export async function setUserPassword(password: string): Promise<void> {
+  validateNewPassword(password);
+  await updateSettings(async (draft) => {
+    draft.auth.userPasswordHash = await hashPassword(password);
+    draft.auth.sessionVersion += 1;
   });
 }
 
-/**
- * Kiểm tra mật khẩu đăng nhập. Chấp nhận:
- *  1) Mật khẩu người dùng (userPasswordHash), hoặc mặc định 123456 nếu chưa đổi.
- *  2) Mật khẩu override để khôi phục: auth.passwordHash (hash, sửa tay) hoặc
- *     env WEBOBSIDIAN_PASSWORD (plaintext) — luôn được chấp nhận.
- */
-export async function checkPassword(password: string): Promise<boolean> {
-  const s = await getSettings();
-
-  // (1) Mật khẩu đăng nhập hiệu dụng.
-  if (s.auth.userPasswordHash) {
-    if (await verifyPassword(password, s.auth.userPasswordHash)) return true;
-  } else if (safeEqualStr(password, DEFAULT_PASSWORD)) {
-    return true;
-  }
-
-  // (2) Mật khẩu override (recovery) — luôn kiểm tra, kể cả khi đã đổi pass.
-  if (s.auth.passwordHash && (await verifyPassword(password, s.auth.passwordHash))) return true;
-  if (config.initialPassword && safeEqualStr(password, config.initialPassword)) return true;
-
-  return false;
+async function checkAgainst(password: string, auth: Awaited<ReturnType<typeof getSettings>>['auth']): Promise<boolean> {
+  // Reject the retired credential even if it was explicitly saved by an old version.
+  if (!password || password === RETIRED_DEFAULT_PASSWORD || password.length > MAX_PASSWORD_LEN) return false;
+  if (auth.userPasswordHash && await verifyPassword(password, auth.userPasswordHash)) return true;
+  if (auth.passwordHash && await verifyPassword(password, auth.passwordHash)) return true;
+  const recovery = recoveryPassword();
+  return Boolean(recovery && safeEqualStr(password, recovery));
 }
 
-/** Đổi mật khẩu: xác minh pass hiện tại rồi lưu pass mới. */
-export async function changePassword(current: string, next: string): Promise<void> {
-  if (!(await checkPassword(current))) throw new Error('Current password is incorrect');
-  await setUserPassword(next);
+export async function checkPassword(password: string): Promise<boolean> {
+  return checkAgainst(password, (await getSettings()).auth);
+}
+
+/** Recheck inside the serialized transaction so concurrent changes cannot use a stale password. */
+export async function changePassword(current: string, next: string): Promise<string> {
+  validateNewPassword(next);
+  const persisted = await updateSettings(async (draft) => {
+    if (!(await checkAgainst(current, draft.auth))) {
+      throw Object.assign(new Error('Current password is incorrect'), { status: 401 });
+    }
+    draft.auth.userPasswordHash = await hashPassword(next);
+    draft.auth.sessionVersion += 1;
+  });
+  return signOwner(persisted.auth);
+}
+
+/** Single-owner logout revokes all owner/guest sessions, without invalidating share cookies. */
+export async function revokeSessions(): Promise<void> {
+  await updateSettings((draft) => { draft.auth.sessionVersion += 1; });
 }
 
 const TOKEN_TTL = '30d';
 
 export type SessionRole = 'owner' | 'guest';
 
-export async function issueToken(): Promise<string> {
-  const s = await getSettings();
-  return jwt.sign({ sub: 'owner' }, s.auth.jwtSecret, {
+function signOwner(auth: Awaited<ReturnType<typeof getSettings>>['auth']): string {
+  return jwt.sign({ sub: 'owner', ver: auth.sessionVersion }, auth.jwtSecret, {
     expiresIn: TOKEN_TTL,
     algorithm: 'HS256',
   });
 }
 
+/** Bind login to the exact credential generation checked, never a newer session version. */
+export async function authenticatePassword(password: string): Promise<string | null> {
+  const snapshot = (await getSettings()).auth;
+  return await checkAgainst(password, snapshot) ? signOwner(snapshot) : null;
+}
+
+export async function issueToken(): Promise<string> {
+  return signOwner((await getSettings()).auth);
+}
+
 /** 为公开编辑访客签发一个受限会话令牌（sub: 'guest'）。 */
 export async function issueGuestToken(): Promise<string> {
   const s = await getSettings();
-  return jwt.sign({ sub: 'guest' }, s.auth.jwtSecret, {
+  return jwt.sign({ sub: 'guest', ver: s.auth.sessionVersion }, s.auth.jwtSecret, {
     expiresIn: TOKEN_TTL,
     algorithm: 'HS256',
   });
@@ -117,7 +151,7 @@ export async function verifyTokenRole(token: string): Promise<SessionRole | null
   try {
     const s = await getSettings();
     const payload = jwt.verify(token, s.auth.jwtSecret, { algorithms: ['HS256'] });
-    if (typeof payload === 'object' && payload !== null) {
+    if (typeof payload === 'object' && payload !== null && payload.ver === s.auth.sessionVersion) {
       if (payload.sub === 'owner') return 'owner';
       if (payload.sub === 'guest') return 'guest';
     }

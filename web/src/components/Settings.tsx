@@ -219,7 +219,7 @@ function GitSettings({ s, reload }: { s: any; reload: () => void }) {
       <Row name={t('Remote URL')} desc="https://github.com/owner/repo.git">
         <input className="text-input" style={{ width: 260 }} value={g.remote} onChange={(e) => set('remote', e.target.value)} />
       </Row>
-      <Row name={t('Branch')}><input className="text-input" style={{ width: 120 }} value={g.branch} onChange={(e) => set('branch', e.target.value)} /></Row>
+      <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>编辑和审核分支请在下方目标设置中填写；旧 Branch 字段不再决定写入目标。</p>
       <Row name={t('Access token (PAT)')} desc={t('Stored server-side; leave masked to keep current')}>
         <input className="text-input" type="password" style={{ width: 260 }} value={g.token} onChange={(e) => set('token', e.target.value)} />
       </Row>
@@ -280,7 +280,10 @@ function GitHubAppSettings({
 }) {
   const [gh, setGh] = useState({ ...(s.github ?? {}) });
   const [appStatus, setAppStatus] = useState<boolean | null>(null);
-  const set = (k: string, v: any) => setGh((p: any) => ({ ...p, [k]: v }));
+  const set = (k: string, v: any) => setGh((p: any) => ({ ...p, [k]: v,
+    ...(['owner', 'repo', 'editBranch', 'baseBranch'].includes(k) ? { targetConfirmed: false } : {}),
+  }));
+  useEffect(() => { setGh({ ...(s.github ?? {}) }); }, [s.github]);
 
   useEffect(() => {
     api.githubAppStatus().then((r) => setAppStatus(r.configured)).catch(() => setAppStatus(null));
@@ -339,11 +342,19 @@ function GitHubAppSettings({
       </Row>
       <Row name={t('仓库 owner')}><input className="text-input" style={{ width: 200 }} value={gh.owner ?? ''} onChange={(e) => set('owner', e.target.value)} /></Row>
       <Row name={t('仓库名 repo')}><input className="text-input" style={{ width: 200 }} value={gh.repo ?? ''} onChange={(e) => set('repo', e.target.value)} /></Row>
-      <Row name={t('编辑分支')} desc={t('在线编辑推送到该分支（默认 web-edit）')}>
+      <Row name={t('编辑分支')} desc="请显式填写编辑分支；不提供默认目标">
         <input className="text-input" style={{ width: 160 }} value={gh.editBranch ?? ''} onChange={(e) => set('editBranch', e.target.value)} />
       </Row>
       <Row name={t('PR 目标分支')} desc={t('创建 Pull Request 时的目标分支')}>
         <input className="text-input" style={{ width: 160 }} value={gh.baseBranch ?? ''} onChange={(e) => set('baseBranch', e.target.value)} />
+      </Row>
+      <Row name="写入目标确认" desc="先保存 Remote URL，再核对仓库与编辑/审核分支。改变目标后必须重新确认。">
+        <label>
+          <input type="checkbox" checked={!!gh.targetConfirmed}
+            disabled={!s.git?.remote || !gh.owner || !gh.repo || !gh.editBranch || !gh.baseBranch || gh.editBranch === gh.baseBranch}
+            onChange={(e) => set('targetConfirmed', e.target.checked)} />
+          我已核对内容仓库和分支，允许使用此目标
+        </label>
       </Row>
       <Row name={t('自动创建 PR')} desc={t('推送成功后自动为编辑分支创建/复用 Pull Request')}>
         <input type="checkbox" checked={!!gh.autoPullRequest} onChange={(e) => set('autoPullRequest', e.target.checked)} />
@@ -640,8 +651,8 @@ function AccountSettings({ s, reload }: { s: any; reload: () => void }) {
   const save = async () => {
     setErr('');
     setMsg('');
-    if (next.length < 6) {
-      setErr(t('Mật khẩu mới phải có ít nhất 6 ký tự'));
+    if (next.length < 12) {
+      setErr(t('Password must be at least {n} characters', { n: 12 }));
       return;
     }
     if (next !== confirm) {

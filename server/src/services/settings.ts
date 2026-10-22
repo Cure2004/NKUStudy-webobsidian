@@ -1,4 +1,4 @@
-import { promises as fs } from 'node:fs';
+import { promises as fs, constants } from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
@@ -17,14 +17,15 @@ const ApiKeySchema = z.object({
 });
 
 const SettingsSchema = z.object({
-  version: z.number().default(1),
+  version: z.number().int().min(1).max(2).default(2),
   auth: z
     .object({
-      // Mật khẩu người dùng đã đổi. Rỗng = đang dùng mật khẩu mặc định (123456).
-      userPasswordHash: z.string().default(''),
+      // Empty means uninitialized; it never enables a shared default password.
+      userPasswordHash: z.string().regex(/^$|^scrypt\$[a-f0-9]{32}\$[a-f0-9]{128}$/i).default(''),
       // Mật khẩu override để khôi phục khi quên pass (sửa tay vào file). Rỗng = không có.
-      passwordHash: z.string().default(''),
+      passwordHash: z.string().regex(/^$|^scrypt\$[a-f0-9]{32}\$[a-f0-9]{128}$/i).default(''),
       jwtSecret: z.string().default(''),
+      sessionVersion: z.number().int().nonnegative().default(0),
     })
     .default({}),
   vault: z
@@ -73,11 +74,12 @@ const SettingsSchema = z.object({
       privateKey: z.string().default(''),
       installationId: z.string().default(''),
       // 目标仓库（在线编辑统一提交到该仓库的 web-edit 分支）。
-      owner: z.string().default('QUT-Lib'),
-      repo: z.string().default('QUT-WiKi'),
+      targetConfirmed: z.boolean().default(false),
+      owner: z.string().default(''),
+      repo: z.string().default(''),
       // 在线编辑推送的分支与 PR 的目标分支。
-      editBranch: z.string().default('web-edit'),
-      baseBranch: z.string().default('contribute'),
+      editBranch: z.string().default(''),
+      baseBranch: z.string().default(''),
       // 是否自动为 web-edit 分支创建/更新 PR。
       autoPullRequest: z.boolean().default(true),
       // 是否让编辑分支自动跟进主分支（baseBranch → editBranch）。
@@ -145,6 +147,8 @@ export type ApiKeyRecord = z.infer<typeof ApiKeySchema>;
 /** ---- Store --------------------------------------------------------------- */
 
 let cache: Settings | null = null;
+let loading: Promise<Settings> | null = null;
+let mutations: Promise<unknown> = Promise.resolve();
 
 function defaults(): Settings {
   const base = SettingsSchema.parse({});
@@ -179,67 +183,150 @@ async function ensureDataDir(): Promise<void> {
   await fs.mkdir(config.dataDir, { recursive: true });
 }
 
-/** Atomic write: write to tmp then rename; keep a .bak of the previous file. */
+/** Safe diagnostics never interpolate settings, schema values or credentials. */
+function settingsError(reason: string): Error {
+  return Object.assign(new Error(`Cannot safely load or save settings (${reason}); settings and existing backups were preserved.`), {
+    status: 503, code: 'SETTINGS_UNAVAILABLE',
+  });
+}
+
+function isMissing(e: unknown): boolean {
+  return (e as NodeJS.ErrnoException)?.code === 'ENOENT';
+}
+
+/** Atomic replacement. Existing .bak is immutable; a failed save never changes cache. */
 async function persist(s: Settings): Promise<void> {
   await ensureDataDir();
-  const json = JSON.stringify(s, null, 2);
   const tmp = `${SETTINGS_FILE}.tmp-${randomBytes(4).toString('hex')}`;
-  await fs.writeFile(tmp, json, { mode: 0o600 });
   try {
-    await fs.copyFile(SETTINGS_FILE, `${SETTINGS_FILE}.bak`);
+    if (!(await fs.lstat(SETTINGS_FILE)).isFile()) throw settingsError('primary_not_regular');
+    await fs.writeFile(tmp, JSON.stringify(s, null, 2), { mode: 0o600, flag: 'wx' });
+    try {
+      await fs.copyFile(SETTINGS_FILE, `${SETTINGS_FILE}.bak`, constants.COPYFILE_EXCL);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
+      if (!(await fs.lstat(`${SETTINGS_FILE}.bak`)).isFile()) throw settingsError('backup_not_regular');
+    }
+    await fs.rename(tmp, SETTINGS_FILE);
   } catch {
-    /* no previous file */
+    throw settingsError('write_failed');
+  } finally {
+    await fs.unlink(tmp).catch(() => {});
   }
-  await fs.rename(tmp, SETTINGS_FILE);
+}
+
+async function readSettings(): Promise<Settings> {
+  try { await ensureDataDir(); } catch { throw settingsError('data_directory_unavailable'); }
+  let raw: string;
+  let handle: Awaited<ReturnType<typeof fs.open>> | undefined;
+  try {
+    // Refuse links and special files before reading. NONBLOCK also avoids a
+    // replaced FIFO hanging startup between opening and the regular-file check.
+    handle = await fs.open(SETTINGS_FILE, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    if (!(await handle.stat()).isFile()) throw settingsError('primary_not_regular');
+    raw = await handle.readFile('utf8');
+  } catch (e) {
+    if (!isMissing(e)) throw settingsError('read_failed');
+    // A missing primary with a backup is recovery, never a new installation.
+    try {
+      await fs.lstat(`${SETTINGS_FILE}.bak`);
+      throw settingsError('primary_missing_with_backup');
+    } catch (backupError) {
+      if (!isMissing(backupError)) throw settingsError('primary_missing_or_backup_unreadable');
+    }
+    const created = defaults();
+    try {
+      await fs.writeFile(SETTINGS_FILE, JSON.stringify(created, null, 2), { mode: 0o600, flag: 'wx' });
+    } catch { throw settingsError('initialization_failed'); }
+    return created;
+  } finally {
+    await handle?.close().catch(() => {});
+  }
+  let input: unknown;
+  try { input = JSON.parse(raw); } catch { throw settingsError('invalid_json'); }
+  // Defaults are for new installs and non-sensitive optional features, never
+  // for missing persisted credentials. Recognize only the actual legacy single-
+  // hash format; a partial current auth object is an error, not fresh setup.
+  const record = z.object({
+    version: z.number().int().min(1).max(2),
+    auth: z.object({
+      jwtSecret: z.string().min(1),
+      userPasswordHash: z.string().optional(),
+      passwordHash: z.string(),
+      sessionVersion: z.number().int().nonnegative().optional(),
+    }),
+    vault: z.object({ path: z.string().min(1) }),
+  }).safeParse(input);
+  if (!record.success) throw settingsError('invalid_structure');
+  const rawAuth = record.data.auth;
+  const persistedVersion = record.data.version;
+  const legacySingleHash = persistedVersion === 1 && rawAuth.userPasswordHash === undefined
+    && rawAuth.passwordHash.length > 0 && rawAuth.sessionVersion === undefined;
+  if (rawAuth.userPasswordHash === undefined && !legacySingleHash) {
+    throw settingsError('missing_credential_fields');
+  }
+  if (persistedVersion === 2 && rawAuth.sessionVersion === undefined) {
+    throw settingsError('missing_session_version');
+  }
+  const result = SettingsSchema.safeParse(input);
+  if (!result.success || !result.data.auth.jwtSecret || !result.data.vault.path) {
+    throw settingsError('invalid_schema');
+  }
+  const parsed = result.data;
+  let dirty = persistedVersion !== 2;
+  parsed.version = 2;
+  // Preserve the old strong password when migrating the legacy single-hash format.
+  if (parsed.auth.passwordHash && !parsed.auth.userPasswordHash) {
+    parsed.auth.userPasswordHash = parsed.auth.passwordHash;
+    parsed.auth.passwordHash = '';
+    dirty = true;
+  }
+  if (ensureVaultBrowsable(parsed)) dirty = true;
+  if (dirty) await persist(parsed);
+  return parsed;
 }
 
 export async function loadSettings(): Promise<Settings> {
   if (cache) return cache;
-  await ensureDataDir();
-  try {
-    const raw = await fs.readFile(SETTINGS_FILE, 'utf8');
-    const parsed = SettingsSchema.parse(JSON.parse(raw));
-    // Backfill secrets that may be empty in older files.
-    let dirty = false;
-    if (!parsed.auth.jwtSecret) {
-      parsed.auth.jwtSecret = randomBytes(48).toString('hex');
-      dirty = true;
-    }
-    // Migration: trước đây `passwordHash` là mật khẩu đăng nhập. Mô hình mới coi
-    // `passwordHash` là mật khẩu override và `userPasswordHash` là pass đăng nhập
-    // (rỗng = mặc định 123456). Để file cũ không bị backdoor bằng 123456, chuyển
-    // pass cũ sang `userPasswordHash` rồi xoá field override.
-    if (parsed.auth.passwordHash && !parsed.auth.userPasswordHash) {
-      parsed.auth.userPasswordHash = parsed.auth.passwordHash;
-      parsed.auth.passwordHash = '';
-      dirty = true;
-    }
-    // Heal older files whose allowedRoots predate the current vault path.
-    if (ensureVaultBrowsable(parsed)) dirty = true;
-    cache = parsed;
-    if (dirty) await persist(cache);
-  } catch {
-    cache = defaults();
-    await persist(cache);
+  if (!loading) {
+    loading = readSettings().then((loaded) => {
+      cache = loaded;
+      return loaded;
+    }).finally(() => { loading = null; });
   }
-  return cache;
+  return loading;
 }
 
 export async function getSettings(): Promise<Settings> {
   return cache ?? (await loadSettings());
 }
 
-/** Mutate settings via an updater fn, validate, persist, and refresh cache. */
-export async function updateSettings(
-  mutator: (draft: Settings) => void | Promise<void>,
-): Promise<Settings> {
-  const current = await getSettings();
-  const draft: Settings = JSON.parse(JSON.stringify(current));
-  await mutator(draft);
-  const validated = SettingsSchema.parse(draft);
-  cache = validated;
-  await persist(validated);
-  return validated;
+/** Hold a stable settings generation across a multi-step operation.
+ * The callback may call getSettings(), but MUST NOT call updateSettings() or
+ * recursively acquire this lock: both would wait on the slot it already owns.
+ */
+export function withSettingsSnapshotLock<T>(fn: () => Promise<T>): Promise<T> {
+  const operation = mutations.then(async () => {
+    await getSettings();
+    return fn();
+  });
+  mutations = operation.catch(() => {});
+  return operation;
+}
+
+/** Serialize read-modify-persist operations; failed writes leave the prior cache intact. */
+export function updateSettings(mutator: (draft: Settings) => void | Promise<void>): Promise<Settings> {
+  const operation = mutations.then(async () => {
+    const current = await getSettings();
+    const draft: Settings = JSON.parse(JSON.stringify(current));
+    await mutator(draft);
+    const validated = SettingsSchema.parse(draft);
+    await persist(validated);
+    cache = validated;
+    return validated;
+  });
+  mutations = operation.catch(() => {});
+  return operation;
 }
 
 /** Redact secrets for sending to the client. */
@@ -247,7 +334,7 @@ export function redactSettings(s: Settings) {
   return {
     ...s,
     auth: {
-      // hasCustomPassword=false nghĩa là đang dùng mật khẩu mặc định (123456).
+      // Only report presence; never expose authentication material.
       hasCustomPassword: Boolean(s.auth.userPasswordHash),
       hasOverridePassword: Boolean(s.auth.passwordHash),
     },

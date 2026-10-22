@@ -51,7 +51,7 @@ gitRouter.get(
   }),
 );
 
-// 仅本地提交（不推送）。仅 owner：访客必须走 /sync 投稿流程（推 web-edit + 开 PR），
+// 仅本地提交（不推送）。仅 owner：访客必须走 /sync 投稿流程（推配置编辑分支 + 开 PR），
 // 不允许把改动留在本地仓库。
 gitRouter.post(
   '/commit',
@@ -69,7 +69,7 @@ gitRouter.post(
 );
 
 // 投稿：提交 + 拉取 + 推送 + 自动开 PR（受 GitHub App 配置约束）。
-// owner 推送到配置的编辑分支；访客强制推送到 web-edit（不信任客户端输入）。
+// owner 推送到配置的编辑分支；访客与 owner 使用同一显式编辑分支（不信任客户端输入）。
 gitRouter.post(
   '/sync',
   asyncHandler(async (req, res) => {
@@ -78,7 +78,7 @@ gitRouter.post(
       res.status(400).json({ error: message.message });
       return;
     }
-    const branch = req.sessionRole === 'guest' ? 'web-edit' : undefined;
+    const role = req.sessionRole === 'guest' ? 'guest' : 'owner';
     let paths = normalizePaths(req.body?.paths);
     // 访客：只能提交可编辑目录内的变更。勾选的路径必须都在该目录内；未指定
     // paths 时，自动收敛为「可编辑目录内的全部变更」，绝不放行越界内容。
@@ -95,7 +95,7 @@ gitRouter.post(
       }
     }
     console.log('[git] manual sync requested');
-    const result = await git.sync(message, branch, paths);
+    const result = await git.sync(message, undefined, paths, role);
     console.log(`[git] sync ${result.ok ? 'ok' : 'not-ok'}:`, result.log.join(' | '));
     res.json(result);
   }),
@@ -120,6 +120,7 @@ gitRouter.post(
 );
 
 gitRouter.get('/status', requireOwner, asyncHandler(async (_req, res) => res.json(await git.status())));
+gitRouter.get('/sync-status', requireOwner, asyncHandler(async (_req, res) => res.json({ receipt: await git.syncStatus() })));
 
 // 手动让编辑分支跟进主分支（baseBranch → editBranch）。仅 owner。
 gitRouter.post(
@@ -193,8 +194,11 @@ gitRouter.post(
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizePaths(raw: any): string[] | undefined {
-  if (!Array.isArray(raw)) return undefined;
-  return raw.filter((p): p is string => typeof p === 'string' && p.trim() !== '');
+  if (raw === undefined) return undefined;
+  if (!Array.isArray(raw) || raw.some(p => typeof p !== 'string' || !p.trim())) {
+    throw Object.assign(new Error('paths must be an array of non-empty file paths'), { status: 400 });
+  }
+  return raw;
 }
 
 /** 解析提交信息：支持 { prefix, description } 模板或 { message }。 */

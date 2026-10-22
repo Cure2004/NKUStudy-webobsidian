@@ -11,15 +11,7 @@ export interface RuntimeConfig {
   allowedRoots: string[];
   initialPassword?: string;
   isProd: boolean;
-  /**
-   * Express `trust proxy` setting. Controls whether `X-Forwarded-*` headers are
-   * honoured (and thus whether `req.ip`/`req.secure` derive from them). Defaults
-   * to `true` (trust the immediate hop) so the common reverse-proxy deployment
-   * keeps `X-Forwarded-Proto`-based `Secure` cookies working out of the box.
-   * This is NOT a rate-limit risk: the login limiter keys on the real TCP socket
-   * address, not `req.ip`, so F-03 (XFF spoofing) is closed regardless of this
-   * value. Set `TRUST_PROXY=false` for a directly-exposed instance with no proxy.
-   */
+  /** Explicit proxy topology; unconfigured deployments ignore forwarded headers. */
   trustProxy: boolean | number | string;
 }
 
@@ -31,21 +23,10 @@ function resolveRoots(): string[] {
   return [];
 }
 
-/**
- * Parse the `TRUST_PROXY` env into an Express `trust proxy` value. Default is
- * `true` (trust the immediate hop) so the common reverse-proxy deployment keeps
- * `X-Forwarded-Proto`-based `Secure` cookies working without extra config; the
- * login rate limit is keyed on the TCP socket address so this is not an F-03
- * (XFF spoofing) risk. Accepts:
- *   - unset / 'true' / 'on'              → true (trust the immediate peer)
- *   - 'false' / 'off' / '0'             → false (no proxy → ignore X-Forwarded-*)
- *   - a non-negative integer             → number of trusted proxy hops
- *   - anything else                      → passed through as a subnet/preset
- *                                          list (e.g. 'loopback, 10.0.0.0/8').
- */
+/** Accept an explicit subnet/preset or hop configuration; default to no proxy trust. */
 function resolveTrustProxy(): boolean | number | string {
   const raw = process.env.TRUST_PROXY?.trim();
-  if (!raw) return true;
+  if (!raw) return false;
   const lower = raw.toLowerCase();
   if (lower === 'false' || lower === 'off' || lower === '0') return false;
   if (lower === 'true' || lower === 'on') return true;

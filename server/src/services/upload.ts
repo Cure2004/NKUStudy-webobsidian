@@ -53,6 +53,7 @@ export async function uploadImage(
   buffer: Buffer,
   filename: string,
   mime: string,
+  signal?: AbortSignal,
 ): Promise<UploadResult> {
   const s = await getSettings();
   const cfg = s.upload;
@@ -63,13 +64,27 @@ export async function uploadImage(
   const form = new FormData();
   form.append(cfg.field || 'file', new Blob([buffer], { type: mime || 'application/octet-stream' }), filename);
 
+  const timeoutMs = Number(process.env.WEBOBSIDIAN_IMAGE_UPSTREAM_TIMEOUT_MS ?? 10_000);
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 25 || timeoutMs > 10_000) throw new UploadError('Invalid image upstream timeout', 503);
   let res: Response;
   try {
-    res = await fetch(url, { method: 'POST', body: form });
+    res = await fetch(url, { method: 'POST', body: form, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs), redirect: 'error' });
   } catch (e: any) {
-    throw new UploadError(`图床连接失败：${e?.message ?? e}`);
+    throw new UploadError('图床连接失败或超时');
   }
-  const text = await res.text().catch(() => '');
+  const reader = res.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  if (reader) {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > 64 * 1024) { await reader.cancel(); throw new UploadError('图床响应过大'); }
+      chunks.push(value);
+    }
+  }
+  const text = Buffer.concat(chunks).toString('utf8');
   let data: any = null;
   try {
     data = JSON.parse(text);
@@ -77,11 +92,14 @@ export async function uploadImage(
     /* 非 JSON 响应 */
   }
   if (!res.ok) {
-    throw new UploadError(`图床返回 ${res.status}：${text.slice(0, 200)}`, 502);
+    throw new UploadError(`图床返回 ${res.status}`, 502);
   }
   const imageUrl = extractUrl(data);
   if (!imageUrl) {
-    throw new UploadError(`图床未返回图片地址：${text.slice(0, 200)}`, 502);
+    throw new UploadError('图床未返回图片地址', 502);
   }
-  return { url: imageUrl, raw: data };
+  let parsed: URL;
+  try { parsed = new URL(imageUrl); } catch { throw new UploadError('图床返回无效图片地址'); }
+  if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password) throw new UploadError('图床返回无效图片地址');
+  return { url: parsed.toString(), raw: data };
 }

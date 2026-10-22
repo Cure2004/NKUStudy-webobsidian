@@ -1,16 +1,17 @@
 import { Router, type Request } from 'express';
 import { asyncHandler } from '../middleware/error.js';
-import { COOKIE_NAME, requireAuth } from '../middleware/auth.js';
+import { COOKIE_NAME, requireAuth, requireOwner } from '../middleware/auth.js';
 import {
   isPasswordSet,
   hasCustomPassword,
-  setUserPassword,
-  checkPassword,
+  initializeUserPassword,
+  revokeSessions,
+  verifyTokenRole,
+  authenticatePassword,
   changePassword,
-  issueToken,
   MIN_PASSWORD_LEN,
 } from '../services/auth.js';
-import { loginRateLimit } from '../middleware/ratelimit.js';
+import { loginRateLimit, setupRateLimit, passwordChangeRateLimit } from '../middleware/ratelimit.js';
 import { getSettings } from '../services/settings.js';
 
 export const authRouter = Router();
@@ -36,7 +37,7 @@ function cookieOpts(req: Request) {
 authRouter.get(
   '/status',
   asyncHandler(async (_req, res) => {
-    // mustChangePassword=true ⇒ still on the default 123456; the UI forces a change.
+    // A recovery login without a user password must establish one.
     // publicEditor=true ⇒ 访客免密进入编辑器（只能编辑指定目录并走 PR 投稿）。
     const s = await getSettings();
     res.json({
@@ -49,25 +50,22 @@ authRouter.get(
 
 authRouter.post(
   '/setup',
+  setupRateLimit,
   asyncHandler(async (req, res) => {
-    if (await isPasswordSet()) {
-      res.status(409).json({ error: 'Password already set' });
+    const { password, setupToken } = req.body ?? {};
+    if (typeof password !== 'string' || typeof setupToken !== 'string') {
+      res.status(400).json({ error: 'password and setupToken required' });
       return;
     }
-    const { password } = req.body ?? {};
-    if (typeof password !== 'string') {
-      res.status(400).json({ error: 'password required' });
-      return;
-    }
-    await setUserPassword(password);
-    const token = await issueToken();
+    const token = await initializeUserPassword(setupToken, password);
     res.cookie(COOKIE_NAME, token, cookieOpts(req)).json({ ok: true });
   }),
 );
 
 authRouter.post(
   '/change-password',
-  requireAuth,
+  requireOwner,
+  passwordChangeRateLimit,
   asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body ?? {};
     if (typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
@@ -78,13 +76,10 @@ authRouter.post(
       res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LEN} characters` });
       return;
     }
-    try {
-      await changePassword(currentPassword, newPassword);
-    } catch {
-      res.status(401).json({ error: 'Current password is incorrect' });
-      return;
-    }
-    res.json({ ok: true });
+    const token = await changePassword(currentPassword, newPassword);
+    // The mutation revoked old sessions. Refresh this browser's cookie atomically
+    // with the successful response so ordinary Settings use remains signed in.
+    res.cookie(COOKIE_NAME, token, cookieOpts(req)).json({ ok: true });
   }),
 );
 
@@ -93,20 +88,23 @@ authRouter.post(
   loginRateLimit,
   asyncHandler(async (req, res) => {
     const { password } = req.body ?? {};
-    if (typeof password !== 'string' || !(await checkPassword(password))) {
+    const token = typeof password === 'string' ? await authenticatePassword(password) : null;
+    if (!token) {
       res.status(401).json({ error: 'Invalid password' });
       return;
     }
-    const token = await issueToken();
     res
       .cookie(COOKIE_NAME, token, cookieOpts(req))
       .json({ ok: true, mustChangePassword: !(await hasCustomPassword()) });
   }),
 );
 
-authRouter.post('/logout', (_req, res) => {
+authRouter.post('/logout', asyncHandler(async (req, res) => {
+  const bearer = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined;
+  const token = req.cookies?.[COOKIE_NAME] || bearer;
+  if (token && await verifyTokenRole(token) === 'owner') await revokeSessions();
   res.clearCookie(COOKIE_NAME, { path: '/' }).json({ ok: true });
-});
+}));
 
 authRouter.get(
   '/me',

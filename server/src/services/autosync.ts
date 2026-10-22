@@ -1,5 +1,5 @@
 import { getSettings } from './settings.js';
-import { sync } from './git.js';
+import { syncAutomatic } from './git.js';
 
 /** Periodic auto-sync when enabled in settings (PRD FR-4). */
 let timer: NodeJS.Timeout | null = null;
@@ -14,13 +14,13 @@ export function startAutoSync(): void {
 async function tick(): Promise<void> {
   if (running) return;
   const s = await getSettings();
-  if (!s.git.enabled || !s.git.autoSync || !s.git.remote) return;
+  if (s.publicEditor.enabled || !s.git.enabled || !s.git.autoSync || !s.git.remote) return;
   const intervalMs = Math.max(s.git.intervalSec, 60) * 1000;
   const last = lastRun ?? 0;
   if (Date.now() - last < intervalMs) return;
   running = true;
   try {
-    const res = await sync();
+    const res = await syncAutomatic();
     lastRun = Date.now();
     if (res.ok) console.log('[autosync] ok:', res.log.join(' | '));
     else console.warn('[autosync] not-ok:', res.log.join(' | '));

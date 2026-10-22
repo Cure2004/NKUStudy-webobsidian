@@ -1,4 +1,4 @@
-import { createSign } from 'node:crypto';
+import { createSign, createHash } from 'node:crypto';
 import { getSettings } from './settings.js';
 
 /**
@@ -23,7 +23,7 @@ export interface GithubAppConfig {
 export async function getGithubAppConfig(): Promise<GithubAppConfig | null> {
   const s = await getSettings();
   const g = s.github;
-  if (!g.appId || !g.privateKey || !g.installationId) return null;
+  if (!g.appEnabled || !g.appId || !g.privateKey || !g.installationId) return null;
   return {
     appId: g.appId,
     privateKey: g.privateKey,
@@ -69,13 +69,13 @@ export async function getInstallationToken(): Promise<string> {
   const cfg = await getGithubAppConfig();
   if (!cfg) throw new Error('GitHub App 尚未配置（缺少 App ID / 私钥 / Installation ID）');
 
-  const cacheKey = `${cfg.appId}:${cfg.installationId}`;
+  const cacheKey = `${cfg.appId}:${cfg.installationId}:${createHash('sha256').update(cfg.privateKey).digest('hex')}`;
   if (cachedToken && cachedToken.key === cacheKey && cachedToken.expiresAt > Date.now() + 60_000) {
     return cachedToken.token;
   }
 
   const jwt = signAppJwt(cfg.appId, cfg.privateKey);
-  const res = await fetch(
+  const res = await apiFetch(
     `https://api.github.com/app/installations/${encodeURIComponent(cfg.installationId)}/access_tokens`,
     {
       method: 'POST',
@@ -87,8 +87,7 @@ export async function getInstallationToken(): Promise<string> {
     },
   );
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`GitHub App 令牌换取失败：${res.status} ${body.slice(0, 300)}`);
+    throw new Error(`GitHub App token exchange failed (HTTP ${res.status})`);
   }
   const json = (await res.json()) as { token: string; expires_at: string };
   cachedToken = {
@@ -111,11 +110,24 @@ export interface GithubRepoRef {
 
 /** 解析 https://github.com/owner/repo(.git) → { owner, repo }。 */
 export function parseGithubRemote(remote: string): GithubRepoRef | null {
-  const m = remote
-    .trim()
-    .replace(/\.git$/i, '')
-    .match(/github\.com[/:]([^/]+)\/([^/]+)$/i);
-  return m ? { owner: m[1], repo: m[2] } : null;
+  const value = remote.trim();
+  let pathname: string;
+  const scp = /^git@github\.com:([^?#]+)$/i.exec(value);
+  if (scp) pathname = scp[1];
+  else {
+    try {
+      const url = new URL(value);
+      if (!['https:', 'ssh:'].includes(url.protocol) || url.hostname.toLowerCase() !== 'github.com' || url.port || url.search || url.hash) return null;
+      pathname = url.pathname.replace(/^\//, '');
+    } catch { return null; }
+  }
+  const match = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?$/.exec(pathname);
+  if (!match || ['.', '..'].includes(match[1]) || ['.', '..'].includes(match[2])) return null;
+  return { owner: match[1], repo: match[2] };
+}
+
+async function apiFetch(url: string, init: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
 }
 
 interface PullRequestResult {
@@ -147,22 +159,23 @@ export async function createOrGetPullRequest(opts: {
 
   // 先查是否已有同 head 的开放 PR。
   const q = `?state=open&head=${encodeURIComponent(`${opts.owner}:${opts.head}`)}&base=${encodeURIComponent(opts.base)}`;
-  const existing = await fetch(api + q, { headers });
+  const existing = await apiFetch(api + q, { headers });
+  if (!existing.ok) throw new Error(`Pull request lookup failed (HTTP ${existing.status}); creation was not attempted`);
   if (existing.ok) {
     const list = (await existing.json()) as Array<{ number: number; html_url: string }>;
-    if (Array.isArray(list) && list.length > 0) {
+    if (!Array.isArray(list)) throw new Error('Invalid pull request lookup response; creation was not attempted');
+    if (list.length > 0) {
       return { number: list[0].number, html_url: list[0].html_url, created: false };
     }
   }
 
-  const res = await fetch(api, {
+  const res = await apiFetch(api, {
     method: 'POST',
     headers,
     body: JSON.stringify({ title: opts.title, body: opts.body, head: opts.head, base: opts.base }),
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`创建 PR 失败：${res.status} ${text.slice(0, 300)}`);
+    throw new Error(`Pull request creation unresolved (HTTP ${res.status}); query before retrying`);
   }
   const pr = (await res.json()) as { number: number; html_url: string };
   return { number: pr.number, html_url: pr.html_url, created: true };
@@ -182,7 +195,7 @@ export async function findOpenPullRequest(opts: {
   const token = await getInstallationToken();
   const api = `https://api.github.com/repos/${opts.owner}/${opts.repo}/pulls`;
   const q = `?state=open&head=${encodeURIComponent(`${opts.owner}:${opts.head}`)}`;
-  const res = await fetch(api + q, {
+  const res = await apiFetch(api + q, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
@@ -190,11 +203,11 @@ export async function findOpenPullRequest(opts: {
     },
   });
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`查询 PR 失败：${res.status} ${body.slice(0, 300)}`);
+    throw new Error(`Pull request lookup failed (HTTP ${res.status})`);
   }
   const list = (await res.json()) as Array<{ number: number; html_url: string; base?: { ref?: string } }>;
-  if (!Array.isArray(list) || list.length === 0) return null;
+  if (!Array.isArray(list)) throw new Error('Invalid pull request lookup response');
+  if (list.length === 0) return null;
   return { number: list[0].number, html_url: list[0].html_url, base: list[0].base?.ref ?? '' };
 }
 
@@ -212,7 +225,7 @@ export async function dispatchWorkflow(opts: {
 }): Promise<void> {
   const token = await getInstallationToken();
   const url = `https://api.github.com/repos/${opts.owner}/${opts.repo}/actions/workflows/${encodeURIComponent(opts.workflow)}/dispatches`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -223,14 +236,14 @@ export async function dispatchWorkflow(opts: {
     body: JSON.stringify({ ref: opts.ref }),
   });
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`触发同步工作流失败：${res.status} ${body.slice(0, 300)}`);
+    throw new Error(`Workflow dispatch unresolved (HTTP ${res.status}); do not replay`);
   }
 }
 
 /** 用 installation token 拼出带鉴权的 https 远程地址。 */
 export async function authedRemoteWithApp(remote: string): Promise<string | null> {
   if (!(await isGithubAppConfigured())) return null;
+  if (!remote.startsWith('https://') || !parseGithubRemote(remote)) throw new Error('GitHub App transport requires a matching HTTPS GitHub remote');
   const token = await getInstallationToken();
   const without = remote.replace(/^https:\/\//, '');
   if (without.includes('@')) return remote; // 已含凭据

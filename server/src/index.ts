@@ -7,14 +7,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promises as fs } from 'node:fs';
 import http from 'node:http';
-import { WebSocketServer } from 'ws';
 import chokidar from 'chokidar';
 
 import { config } from './config.js';
 import { loadSettings, getSettings, setPasswordIfInitial } from './bootstrap.js';
 import { errorHandler } from './middleware/error.js';
-import { COOKIE_NAME } from './middleware/auth.js';
-import { verifyToken } from './services/auth.js';
 import { authRouter } from './routes/auth.js';
 import { filesRouter } from './routes/files.js';
 import { searchRouter } from './routes/search.js';
@@ -29,7 +26,9 @@ import { sharePageRouter } from './routes/sharepage.js';
 import { initSearch, qmd } from './services/search.js';
 import { buildLinkGraph, updateLinkGraphForFile } from './services/links.js';
 import { buildFileIndex, indexFile, unindexFile } from './services/fileindex.js';
-import { setBroadcaster, broadcast } from './services/realtime.js';
+import { broadcast } from './services/realtime.js';
+import { setupWebsocket } from './services/websocket.js';
+import { sameOriginWrites } from './middleware/requestOrigin.js';
 import { getVaultRoot, getContentRoot, ensureVault, invalidateStat } from './services/vault.js';
 import { startAutoSync } from './services/autosync.js';
 import { startBaseFollow } from './services/basefollow.js';
@@ -61,14 +60,10 @@ async function main() {
   }
 
   const app = express();
-  // Honour X-Forwarded-* per the deployment's proxy topology (TRUST_PROXY).
-  // Default true (trust the immediate hop) so X-Forwarded-Proto-based `Secure`
-  // cookies work behind the recommended reverse-proxy setup without extra config.
-  // This is safe against F-03: the login rate limiter keys on the TCP socket
-  // address (see middleware/ratelimit.ts), not the spoofable X-Forwarded-For.
-  // Set TRUST_PROXY=false for a directly-exposed instance with no proxy.
+  // Forwarded headers are trusted only by explicit deployment configuration.
   app.set('trust proxy', config.trustProxy);
-  app.use(express.json({ limit: '32mb' }));
+  app.use(sameOriginWrites);
+  app.use(express.json({ limit: '2mb' }));
   app.use(cookieParser());
 
   // Per-request CSP nonce — used by the SSR share page's inline <script>.
@@ -155,64 +150,12 @@ async function main() {
   startBaseFollow();
 
   server.listen(config.port, config.host, () => {
-    console.log(`\n  WebObsidian server → http://${config.host}:${config.port}`);
+    const address = server.address();
+    const listeningPort = address && typeof address === 'object' ? address.port : config.port;
+    console.log(`\n  WebObsidian server → http://${config.host}:${listeningPort}`);
     console.log(`  Vault: ${config.defaultVaultPath}`);
     console.log(`  Data:  ${config.dataDir}\n`);
   });
-}
-
-// --- WebSocket: broadcast filesystem & UI-state events to connected clients ----
-// Auth-gated: the WS stream leaks vault structure (paths of created/changed/deleted
-// files), so the upgrade is rejected unless the request carries a valid session.
-function setupWebsocket(server: http.Server) {
-  const wss = new WebSocketServer({ noServer: true });
-
-  server.on('upgrade', (req, socket, head) => {
-    let pathname = '';
-    try {
-      pathname = new URL(req.url ?? '', 'http://localhost').pathname;
-    } catch {
-      pathname = '';
-    }
-    if (pathname !== '/ws') {
-      socket.destroy();
-      return;
-    }
-    const token = cookieValue(req.headers.cookie, COOKIE_NAME) ?? bearerToken(req.headers.authorization);
-    void (async () => {
-      if (!token || !(await verifyToken(token))) {
-        socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
-        socket.destroy();
-        return;
-      }
-      wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
-    })();
-  });
-
-  wss.on('connection', (ws) => {
-    ws.send(JSON.stringify({ type: 'hello' }));
-  });
-  setBroadcaster((msg) => {
-    const data = JSON.stringify(msg);
-    for (const client of wss.clients) {
-      if (client.readyState === 1) client.send(data);
-    }
-  });
-}
-
-/** Parse a single cookie value out of a raw `Cookie:` header (no cookie-parser on upgrade). */
-function cookieValue(header: string | undefined, name: string): string | undefined {
-  if (!header) return undefined;
-  for (const part of header.split(';')) {
-    const eq = part.indexOf('=');
-    if (eq === -1) continue;
-    if (part.slice(0, eq).trim() === name) return decodeURIComponent(part.slice(eq + 1).trim());
-  }
-  return undefined;
-}
-
-function bearerToken(header: string | undefined): string | undefined {
-  return header?.startsWith('Bearer ') ? header.slice(7) : undefined;
 }
 
 // --- chokidar watcher: reflect external changes (git pull, direct edits) ---
@@ -227,6 +170,8 @@ async function setupWatcher() {
 
 function startWatcher(root: string, usePolling: boolean) {
   const watcher = chokidar.watch(root, {
+    // The configured root is one literal directory, never an untrusted glob.
+    disableGlobbing: true,
     // Ignore VCS/dep/trash dirs AND `.obsidian` — the desktop Obsidian app
     // rewrites its workspace/state files constantly, which otherwise floods the
     // server with events (→ broadcasts → full tree refetches) and pins the CPU.

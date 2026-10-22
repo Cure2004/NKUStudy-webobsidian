@@ -1,5 +1,5 @@
 import { getSettings } from './settings.js';
-import { followBase } from './git.js';
+import { followBaseAutomatic } from './git.js';
 
 /**
  * 让编辑分支（web-edit）自动跟进主分支（contribute）的定时任务。
@@ -20,12 +20,12 @@ export function startBaseFollow(): void {
 async function tick(): Promise<void> {
   if (running) return;
   const s = await getSettings();
-  if (!s.git.enabled || !s.github.autoFollowBase || !s.git.remote) return;
+  if (s.publicEditor.enabled || !s.git.enabled || !s.github.autoFollowBase || !s.git.remote) return;
   const intervalMs = Math.max(s.github.followIntervalSec, 60) * 1000;
   if (Date.now() - (lastRun ?? 0) < intervalMs) return;
   running = true;
   try {
-    const res = await followBase();
+    const res = await followBaseAutomatic();
     lastRun = Date.now();
     if (res.merged) console.log('[basefollow] merged:', res.log.join(' | '));
     else if (!res.ok) console.warn('[basefollow] not-ok:', res.log.join(' | '));

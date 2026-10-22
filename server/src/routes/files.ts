@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import multer from 'multer';
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { asyncHandler } from '../middleware/error.js';
+import { stableMutationHandler as asyncHandler } from '../middleware/stableMutation.js';
 import { requireAuth, denyGuest } from '../middleware/auth.js';
 import * as vault from '../services/vault.js';
 import { getSettings } from '../services/settings.js';
@@ -14,17 +14,22 @@ import { mimeFor } from '../services/mime.js';
 import { sendFileWithRange } from '../services/httpfile.js';
 import { uploadImage, UploadError } from '../services/upload.js';
 import { assertGuestWritable } from '../services/guestpath.js';
+import { receiveUpload, assertRasterImage } from '../services/uploadPolicy.js';
 
 export const filesRouter = Router();
 filesRouter.use(requireAuth);
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 512 * 1024 * 1024 } });
 
 const isMd = (p: string) => /\.(md|markdown)$/i.test(p);
 
 /** 取上传文件名的纯文件名，去掉任何目录/穿越片段（防止 originalname 携带 ../）。 */
-const safeUploadName = (name: string): string =>
-  path.posix.basename(String(name ?? '').replace(/\\/g, '/')).replace(/^\.+/, '') || 'file';
+const safeUploadName = (name: string): string => {
+  const safe = path.posix.basename(String(name ?? '').replace(/\\/g, '/')).replace(/^\.+/, '') || 'file';
+  if (safe.includes('\0') || Buffer.byteLength(safe) > 240) {
+    throw Object.assign(new Error('Invalid upload filename'), { status: 400 });
+  }
+  return safe;
+};
 
 // 访客（公开编辑）只能改动 publicEditor.editableRoot 下的路径；
 // 校验逻辑见 services/guestpath.ts（路径口径：相对内容根）。
@@ -49,10 +54,10 @@ function guestWriteGuard(req: Request, res: Response, next: NextFunction): void 
 
 // Refresh derived indexes after a mutation (best-effort, non-blocking).
 // Incremental: only the touched file(s) are reparsed, not the whole vault.
-function reindex(opts: { upsert?: string; added?: string; removed?: string } = {}) {
-  if (opts.upsert) void qmd.upsert(opts.upsert).catch(() => {});
-  if (opts.added && isMd(opts.added)) void updateLinkGraphForFile(opts.added).catch(() => {});
-  if (opts.removed && isMd(opts.removed)) void updateLinkGraphForFile(opts.removed, true).catch(() => {});
+async function reindex(opts: { upsert?: string; added?: string; removed?: string } = {}) {
+  if (opts.upsert) await qmd.upsert(opts.upsert).catch(() => {});
+  if (opts.added && isMd(opts.added)) await updateLinkGraphForFile(opts.added).catch(() => {});
+  if (opts.removed && isMd(opts.removed)) await updateLinkGraphForFile(opts.removed, true).catch(() => {});
   scheduleAutoCommitOnSave();
 }
 
@@ -71,6 +76,7 @@ filesRouter.get(
       res.status(400).json({ error: 'path required' });
       return;
     }
+    rel = await vault.canonicalRelativePath(rel);
     // Obsidian-style resolution: if the exact path doesn't exist (e.g. an embed
     // `![[image.jpg]]` that lives in Attachments/), resolve it by basename.
     if (!(await vault.exists(rel))) {
@@ -96,9 +102,10 @@ filesRouter.put(
       res.status(400).json({ error: 'path and content required' });
       return;
     }
-    await vault.writeFileText(rel, content);
-    reindex({ upsert: rel, added: rel });
-    res.json({ ok: true, path: rel });
+    const canonical = await vault.canonicalRelativePath(rel);
+    await vault.writeFileText(canonical, content);
+    await reindex({ upsert: canonical, added: canonical });
+    res.json({ ok: true, path: canonical });
   }),
 );
 
@@ -111,15 +118,15 @@ filesRouter.post(
       res.status(400).json({ error: 'path required' });
       return;
     }
-    await vault.createFolder(rel);
-    res.json({ ok: true, path: rel });
+    const canonical = await vault.canonicalRelativePath(rel);
+    await vault.createFolder(canonical);
+    res.json({ ok: true, path: canonical });
   }),
 );
 
 filesRouter.post(
   '/upload',
-  upload.single('file'),
-  guestWriteGuard,
+  receiveUpload('attachment'),
   asyncHandler(async (req, res) => {
     const dir = String(req.body?.dir ?? '');
     const file = req.file;
@@ -131,7 +138,8 @@ filesRouter.post(
     // "Attachments") instead of creating a duplicate "attachments". See vault.ts.
     const resolvedDir = dir ? await vault.resolveDirCaseInsensitive(dir) : '';
     const rel = path.posix.join(resolvedDir, safeUploadName(file.originalname));
-    await vault.writeFileBuffer(rel, file.buffer);
+    if (req.sessionRole === 'guest') await assertGuestWritable(rel);
+    await vault.importUpload(rel, file.path);
     res.json({ ok: true, path: rel, size: file.size });
   }),
 );
@@ -142,28 +150,26 @@ filesRouter.post(
  */
 filesRouter.post(
   '/upload-image',
-  upload.single('file'),
-  guestWriteGuard,
+  receiveUpload('image'),
   asyncHandler(async (req, res) => {
     const file = req.file;
     if (!file) {
       res.status(400).json({ error: 'file required' });
       return;
     }
-    if (!file.mimetype.startsWith('image/')) {
-      res.status(400).json({ error: '仅支持图片文件' });
-      return;
-    }
+    await assertRasterImage(file);
     try {
-      const { url } = await uploadImage(file.buffer, file.originalname, file.mimetype);
+      const { url } = await uploadImage(await fs.readFile(file.path), file.originalname, file.mimetype, res.locals.uploadAbortSignal);
       res.json({ ok: true, remote: true, url });
     } catch (e) {
+      if (res.destroyed || res.writableEnded) return;
       if (e instanceof UploadError && e.status === 400) {
         // 未启用图床：回退到本地 attachments。
         const s = await getSettings();
         const resolvedDir = await vault.resolveDirCaseInsensitive(s.vault.attachmentDir || 'attachments');
         const rel = path.posix.join(resolvedDir, safeUploadName(file.originalname));
-        await vault.writeFileBuffer(rel, file.buffer);
+        if (req.sessionRole === 'guest') await assertGuestWritable(rel);
+        await vault.importUpload(rel, file.path);
         res.json({ ok: true, remote: false, path: rel, size: file.size });
         return;
       }
@@ -181,11 +187,17 @@ filesRouter.patch(
       res.status(400).json({ error: 'from and to required' });
       return;
     }
-    await vault.rename(from, to);
-    await qmd.rename(from, to);
-    await onFileRenamed(from, to).catch(() => {}); // keep public share links pointing at the note
-    reindex({ added: to, removed: from });
-    res.json({ ok: true, from, to });
+    if (req.sessionRole === 'guest') {
+      await assertGuestWritable(from, { protectRoot: true });
+      await assertGuestWritable(to, { protectRoot: true });
+    }
+    const canonicalFrom = await vault.canonicalRelativePath(from);
+    const canonicalTo = await vault.canonicalRelativePath(to);
+    await vault.rename(canonicalFrom, canonicalTo);
+    await qmd.rename(canonicalFrom, canonicalTo);
+    await onFileRenamed(canonicalFrom, canonicalTo).catch(() => {}); // keep public share links pointing at the note
+    await reindex({ added: canonicalTo, removed: canonicalFrom });
+    res.json({ ok: true, from: canonicalFrom, to: canonicalTo });
   }),
 );
 
@@ -198,11 +210,15 @@ filesRouter.post(
       res.status(400).json({ error: 'from and to required' });
       return;
     }
+    if (req.sessionRole === 'guest') {
+      await assertGuestWritable(from, { protectRoot: true });
+      await assertGuestWritable(to, { protectRoot: true });
+    }
     const copied = await vault.copy(from, to);
     for (const f of copied) {
       if (isMd(f)) {
-        void qmd.upsert(f).catch(() => {});
-        void updateLinkGraphForFile(f).catch(() => {});
+        await qmd.upsert(f).catch(() => {});
+        await updateLinkGraphForFile(f).catch(() => {});
       }
     }
     scheduleAutoCommitOnSave();
@@ -232,7 +248,7 @@ filesRouter.post(
       return;
     }
     const restored = await vault.restoreFromTrash(rel);
-    reindex({ upsert: restored, added: restored });
+    await reindex({ upsert: restored, added: restored });
     res.json({ ok: true, restored });
   }),
 );
@@ -271,16 +287,19 @@ filesRouter.delete(
       res.status(400).json({ error: 'path required' });
       return;
     }
+    if (req.sessionRole === 'guest') await assertGuestWritable(rel, { protectRoot: true });
     const s = await getSettings();
-    qmd.remove(rel);
+    const canonical = await vault.canonicalRelativePath(rel);
     if (s.vault.deleteMode === 'permanent') {
-      await vault.remove(rel);
-      reindex({ removed: rel });
-      res.json({ ok: true, deleted: rel });
+      await vault.remove(canonical);
+      qmd.remove(canonical);
+      await reindex({ removed: canonical });
+      res.json({ ok: true, deleted: canonical });
       return;
     }
-    const dest = await vault.trash(rel);
-    reindex({ removed: rel });
+    const dest = await vault.trash(canonical);
+    qmd.remove(canonical);
+    await reindex({ removed: canonical });
     res.json({ ok: true, trashed: dest });
   }),
 );

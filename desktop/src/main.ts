@@ -187,27 +187,30 @@ function tokenFromSetCookie(setCookie: string[]): string | undefined {
 
 // Log in with the per-install secret (always accepted as the override password),
 // then seed the JWT into the window's session cookie jar so the BrowserWindow is
-// authenticated with no login prompt. If still on the default password, promote
+// authenticated with no login prompt. If no custom password exists, promote
 // the secret to the custom password (via Bearer auth) so the UI doesn't force a
-// password change on first launch. JWTs survive the password change (signed with
-// a stable jwtSecret), so the same token stays valid for the window.
+// password change on first launch. Password changes revoke old JWTs, so install
+// the refreshed cookie returned by that request.
 async function autoLogin(port: number, secret: string): Promise<void> {
   try {
     const login = await apiRequest('POST', `${baseUrl(port)}/auth/login`, { password: secret });
     if (login.status !== 200) return;
-    const token = tokenFromSetCookie(login.setCookie);
+    let token = tokenFromSetCookie(login.setCookie);
     if (!token) return;
 
     const mustChange = Boolean(
       login.json && typeof login.json === 'object' && (login.json as { mustChangePassword?: boolean }).mustChangePassword,
     );
     if (mustChange) {
-      await apiRequest(
+      const changed = await apiRequest(
         'POST',
         `${baseUrl(port)}/auth/change-password`,
         { currentPassword: secret, newPassword: secret },
         { Authorization: `Bearer ${token}` },
       );
+      if (changed.status !== 200) return;
+      token = tokenFromSetCookie(changed.setCookie);
+      if (!token) return;
     }
 
     await session.defaultSession.cookies.set({

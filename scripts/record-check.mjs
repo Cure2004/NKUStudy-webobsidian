@@ -1,0 +1,18 @@
+import { spawn } from 'node:child_process';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import path from 'node:path';
+const [name, command, ...args] = process.argv.slice(2);
+if (!name || !command || !/^[a-z0-9-]+$/.test(name)) throw new Error('Usage: node scripts/record-check.mjs <name> <command> [args...]');
+const directory = path.resolve('docs/nkustudy/remediation');
+await mkdir(directory,{recursive:true});
+const startedAt = new Date().toISOString();
+const id = `${name}-${startedAt.replace(/[:.]/g,'-')}`;
+const child = spawn(command,args,{stdio:['ignore','pipe','pipe']});
+let output = '';
+for (const stream of [child.stdout,child.stderr]) stream.on('data',data=>{output+=data.toString(); process.stdout.write(data);});
+const exitCode = await new Promise(resolve=>{child.on('error',error=>{output+='\n'+error.message;resolve(127);});child.on('close',code=>resolve(code??128));});
+await writeFile(path.join(directory,`${id}.log`),output);
+const result={name,command:[command,...args],startedAt,endedAt:new Date().toISOString(),exitCode,node:process.version,platform:process.platform,arch:process.arch,log:`${id}.log`};
+await writeFile(path.join(directory,`${id}.json`),JSON.stringify(result,null,2)+'\n');
+console.log(JSON.stringify({check:name,exitCode,evidence:`docs/nkustudy/remediation/${id}.json`}));
+process.exitCode=Number(exitCode);

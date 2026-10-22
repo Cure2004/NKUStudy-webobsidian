@@ -7,13 +7,11 @@ export async function loadSettings() {
   return _load();
 }
 
-/**
- * WEBOBSIDIAN_PASSWORD không còn ghi vào settings.json; nó được dùng như mật khẩu
- * override (khôi phục khi quên pass), kiểm tra trực tiếp lúc login. Mật khẩu đăng
- * nhập mặc định là 123456. Chỉ log để báo override đang bật.
- */
+/** Report mode only: never print credentials or create a default password. */
 export async function setPasswordIfInitial(): Promise<void> {
   if (config.initialPassword) {
-    console.log('[boot] WEBOBSIDIAN_PASSWORD active as recovery/override password');
+    console.log('[boot] Explicit recovery credential configured; retired or short credentials are rejected');
+  } else if (!(await getSettings()).auth.userPasswordHash) {
+    console.log('[boot] Owner setup required; configure a private one-time setup credential before initialization');
   }
 }

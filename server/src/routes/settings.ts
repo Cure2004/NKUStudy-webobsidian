@@ -33,6 +33,7 @@ settingsRouter.put(
       await assertVaultPathAllowed(body.vault);
     }
     const updated = await updateSettings((d) => {
+      const oldGitTarget = [d.git.remote, d.github.owner, d.github.repo, d.github.editBranch, d.github.baseBranch].join('\0');
       if (body.vault) {
         Object.assign(d.vault, sanitizeVault(body.vault));
         ensureVaultBrowsable(d);
@@ -50,6 +51,8 @@ settingsRouter.put(
           d.github.privateKey = privateKey;
         }
       }
+      const newGitTarget = [d.git.remote, d.github.owner, d.github.repo, d.github.editBranch, d.github.baseBranch].join('\0');
+      if (newGitTarget !== oldGitTarget && body.github?.targetConfirmed !== true) d.github.targetConfirmed = false;
       if (body.upload) {
         const { key, ...rest } = body.upload;
         Object.assign(d.upload, rest);

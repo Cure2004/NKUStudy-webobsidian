@@ -8,5 +8,6 @@
 export function redactUrlCreds(input: unknown): string {
   const s = typeof input === 'string' ? input : String(input ?? '');
   // scheme://<userinfo>@host  →  scheme://***@host   (userinfo = user[:pass] or token)
-  return s.replace(/([a-z][a-z0-9+.-]*:\/\/)[^/@\s]+@/gi, '$1***@');
+  return s.replace(/([a-z][a-z0-9+.-]*:\/\/)[^/@\s]+@/gi, '$1***@')
+    .replace(/([?&](?:key|token|access_token|password|secret|signature)=)[^&#\s]*/gi, '$1[REDACTED]');
 }

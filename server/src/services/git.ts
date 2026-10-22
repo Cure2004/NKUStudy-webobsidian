@@ -1,13 +1,16 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import { randomUUID } from 'node:crypto';
+import { config } from '../config.js';
 import { simpleGit, type SimpleGit, type StatusResult } from 'simple-git';
-import { getSettings } from './settings.js';
-import { getVaultRoot } from './vault.js';
+import { getSettings, withSettingsSnapshotLock } from './settings.js';
+import { getVaultRoot, canonicalRelativePath, getContentRoot } from './vault.js';
+import { assertGuestWritable, isGuestWritable } from './guestpath.js';
 import { redactUrlCreds } from '../lib/redact.js';
 import {
   authedRemoteWithApp,
   createOrGetPullRequest,
-  dispatchWorkflow,
   findOpenPullRequest,
   isGithubAppConfigured,
   parseGithubRemote,
@@ -31,61 +34,54 @@ export interface GitStatus {
   clean: boolean;
 }
 
+/** Do not pass inherited editor/pager/command variables into Git. */
+function gitEnvironment(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '',
+    ...(process.env.TMPDIR ? { TMPDIR: process.env.TMPDIR } : {}),
+    LANG: 'C.UTF-8', GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0', ...extra,
+  };
+}
+
 async function git(): Promise<SimpleGit> {
   const root = await getVaultRoot();
   await fs.mkdir(root, { recursive: true });
   // `timeout.block`: abort a command that produces no output for this long, so a
   // dead network push/pull can't hang forever and wedge the serial queue below.
-  return simpleGit({ baseDir: root, trimmed: true, timeout: { block: 120_000 } });
+  const env = gitEnvironment();
+  return simpleGit({ baseDir: root, trimmed: true, timeout: { block: 120_000 }, allowEnvironment: Object.keys(env) }).env(env);
 }
 
-// ---------------------------------------------------------------------------
-// Serialized git access + stale-lock self-healing
-//
-// Auto-sync (every 30s), the debounced commit-on-save, and the manual /git/*
-// routes all drive git on the SAME repo. Run two at once and their `git add`/
-// `commit` collide on `.git/index.lock` ("Another git process seems to be
-// running") — and a command killed mid-write leaves that lock behind, which then
-// wedges EVERY later op (the "completely dead" state). Funnelling all mutating
-// ops through one async queue removes the race; clearing a stale lock at the head
-// of each op heals a leftover from a crash or an external Obsidian-git process.
-// ---------------------------------------------------------------------------
+// Serialize this process and coordinate cooperating local instances. Existing Git
+// locks are never removed based on their age; recovery requires operator review.
 let gitQueue: Promise<unknown> = Promise.resolve();
-
-/** A lock a live git process holds is gone within a second for a notes vault; one
- *  older than this is orphaned. Generous enough that even an external LFS commit
- *  in flight is never yanked, small enough that a crash leftover self-heals fast. */
-const STALE_LOCK_MS = 15_000;
-
-async function clearStaleLocks(): Promise<void> {
-  const gitDir = path.join(await getVaultRoot(), '.git');
-  for (const name of ['index.lock', 'HEAD.lock', 'config.lock']) {
-    const lock = path.join(gitDir, name);
+function withGitLock<T>(fn: () => Promise<T>): Promise<T> {
+  const result = gitQueue.then(() => withSettingsSnapshotLock(async () => {
+    const gitDir = path.join(await getVaultRoot(), '.git');
+    let handle: Awaited<ReturnType<typeof fs.open>> | undefined;
+    const ownLock = path.join(gitDir, 'webobsidian-operation.lock');
     try {
-      const { mtimeMs } = await fs.stat(lock);
-      const age = Date.now() - mtimeMs;
-      if (age >= STALE_LOCK_MS) {
-        await fs.rm(lock, { force: true });
-        console.warn(`[git] cleared stale ${name} (age ${Math.round(age / 1000)}s)`);
+      if ((await fs.stat(gitDir).catch(() => null))?.isDirectory()) {
+        try { handle = await fs.open(ownLock, 'wx', 0o600); }
+        catch (e: any) { if (e?.code === 'EEXIST') throw new Error('Repository operation already running; inspect the operation lock before recovery'); throw e; }
       }
-    } catch {
-      /* lock absent — nothing to clear */
+      return await fn();
+    } finally {
+      if (handle) { await handle.close(); await fs.unlink(ownLock); }
+    }
+  }));
+  gitQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
+
+async function assertRepositoryIdle(g: SimpleGit): Promise<void> {
+  const root = await getVaultRoot();
+  for (const name of ['index.lock', 'HEAD.lock', 'config.lock', 'MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD']) {
+    if (await fs.lstat(path.join(root, '.git', name)).then(() => true, (e: any) => { if (e?.code === 'ENOENT') return false; throw e; })) {
+      throw new Error('Repository has an active lock or unfinished operation; preserve it and resolve before retrying');
     }
   }
-}
-
-/** Run `fn` with exclusive access to the vault repo, after self-healing any stale
- *  lock. Ops queue (never overlap); a rejecting op doesn't poison the queue. */
-function withGitLock<T>(fn: () => Promise<T>): Promise<T> {
-  const result = gitQueue.then(async () => {
-    await clearStaleLocks();
-    return fn();
-  });
-  gitQueue = result.then(
-    () => undefined,
-    () => undefined,
-  );
-  return result;
+  if ((await g.status()).conflicted.length) throw new Error('Resolve repository conflicts before writing');
 }
 
 // Public, serialized git operations. Each delegates to its private *Impl below;
@@ -98,8 +94,8 @@ export const commitAll = (message?: string, paths?: string[]): Promise<string> =
   withGitLock(() => commitAllImpl(message, paths));
 export const init = (): Promise<void> => withGitLock(initImpl);
 export const clone = (): Promise<void> => withGitLock(cloneImpl);
-export const sync = (message?: string, branch?: string, paths?: string[]): Promise<{ ok: boolean; log: string[] }> =>
-  withGitLock(() => syncImpl(message, branch, paths));
+export const sync = (message?: string, branch?: string, paths?: string[], role: 'owner' | 'guest' = 'owner'): Promise<SyncResult> =>
+  withGitLock(() => syncImpl(message, branch, paths, role));
 export const changes = (): Promise<GitChange[]> => withGitLock(changesImpl);
 export const discard = (paths: string[]): Promise<number> => withGitLock(() => discardImpl(paths));
 
@@ -110,7 +106,7 @@ async function authedRemote(): Promise<string> {
   if (!url) return '';
   // GitHub App 优先：用 installation token 拼鉴权地址（自动轮换、权限更细）。
   if (await isGithubAppConfigured()) {
-    const viaApp = await authedRemoteWithApp(url).catch(() => null);
+    const viaApp = await authedRemoteWithApp(url);
     if (viaApp) return viaApp;
   }
   if (s.git.token && url.startsWith('https://')) {
@@ -122,10 +118,57 @@ async function authedRemote(): Promise<string> {
   return url;
 }
 
-/** 在线编辑要推送的目标分支：优先 GitHub 配置的 editBranch，否则回退 git.branch。 */
+function validBranch(value: string): boolean {
+  return Boolean(value) && value !== '@' && !/[\x00-\x20\x7f~^:?*\[\\]/.test(value)
+    && !value.includes('..') && !value.includes('@{') && !value.startsWith('-')
+    && !value.endsWith('.') && value.split('/').every(p => p && !p.startsWith('.') && !p.endsWith('.lock'));
+}
+
+/** Only the explicit edit branch controls writes. git.branch is legacy display data. */
 async function editBranch(): Promise<string> {
   const s = await getSettings();
-  return (s.github.editBranch || s.git.branch || 'web-edit').trim();
+  const branch = s.github.editBranch.trim();
+  if (!validBranch(branch)) throw new Error('Configure a valid explicit editing branch');
+  return branch;
+}
+
+interface WriteTarget { remote: string; edit: string; base: string; owner: string; repo: string; local: boolean }
+async function writeTarget(requirePr = false): Promise<WriteTarget> {
+  const s = await getSettings();
+  if (!s.git.enabled) throw new Error('Git writes are disabled');
+  const remote = s.git.remote.trim();
+  const edit = await editBranch();
+  const base = s.github.baseBranch.trim();
+  if (!validBranch(base) || base === edit) throw new Error('Configure distinct valid editing and review base branches');
+  if (!remote) throw new Error('Configure the content repository remote explicitly');
+  const local = path.isAbsolute(remote);
+  const parsed = parseGithubRemote(remote);
+  if (!local && !parsed) throw new Error('Remote must be a GitHub HTTPS/SSH URL or an absolute local repository path');
+  const owner = s.github.owner.trim(), repo = s.github.repo.trim();
+  if (!local) {
+    if (!s.github.targetConfirmed) throw new Error('Confirm the content repository and branch configuration before Git writes');
+    if (!owner || !repo || owner.toLowerCase() !== parsed!.owner.toLowerCase() || repo.toLowerCase() !== parsed!.repo.toLowerCase()) {
+      throw new Error('Configured GitHub owner/repo does not match the content remote');
+    }
+  }
+  if (requirePr && (local || !s.github.autoPullRequest || !(await isGithubAppConfigured()))) {
+    throw new Error('Guest submissions require a configured matching GitHub App and pull request review');
+  }
+  if (!local && s.github.autoPullRequest && !(await isGithubAppConfigured())) throw new Error('Automatic pull requests require a configured GitHub App');
+  return { remote, edit, base, owner, repo, local };
+}
+
+function remoteIdentity(remote: string): string {
+  const parsed = parseGithubRemote(remote);
+  return parsed ? `github:${parsed.owner.toLowerCase()}/${parsed.repo.toLowerCase()}` : path.resolve(remote);
+}
+async function assertTargetRepository(g: SimpleGit, target: WriteTarget): Promise<void> {
+  if (!(await isRepo(g))) throw new Error('Initialize the content repository before submitting');
+  await assertRepositoryIdle(g);
+  const current = (await g.raw(['symbolic-ref', '--short', 'HEAD'])).trim();
+  if (current !== target.edit) throw new Error('Current content branch is not the configured editing branch; no write was performed');
+  const origin = (await g.raw(['remote', 'get-url', 'origin'])).trim();
+  if (remoteIdentity(origin) !== remoteIdentity(target.remote)) throw new Error('Existing origin does not match the confirmed content remote');
 }
 
 async function isRepo(g: SimpleGit): Promise<boolean> {
@@ -192,6 +235,7 @@ export async function ensureLfsAttributes(): Promise<void> {
 }
 
 async function initImpl(): Promise<void> {
+  await writeTarget();
   const g = await git();
   const s = await getSettings();
   const branch = await editBranch();
@@ -200,7 +244,7 @@ async function initImpl(): Promise<void> {
     await g.checkoutLocalBranch(branch).catch(() => {});
   }
   await configureIdentity(g);
-  const remote = await authedRemote();
+  const remote = s.git.remote.trim();
   if (remote) {
     const remotes = await g.getRemotes(true);
     if (remotes.find((r) => r.name === 'origin')) {
@@ -214,17 +258,23 @@ async function initImpl(): Promise<void> {
 
 /** Clone the configured remote into the (empty) vault dir. */
 async function cloneImpl(): Promise<void> {
+  const target = await writeTarget();
   const s = await getSettings();
   const remote = await authedRemote();
   if (!remote) throw new Error('No remote configured');
   const root = await getVaultRoot();
-  const branch = s.github.editBranch || s.git.branch || 'main';
+  const branch = target.edit;
   const entries = await fs.readdir(root).catch(() => []);
   if (entries.filter((e) => e !== '.git').length > 0) {
     throw new Error('Vault directory not empty; cannot clone into it');
   }
-  const g = simpleGit();
-  await g.clone(remote, root, ['--branch', branch]);
+  const env = gitEnvironment();
+  const g = simpleGit({ allowEnvironment: Object.keys(env) }).env(env);
+  try { await g.clone(remote, root, ['--branch', branch]); }
+  finally {
+    const local = await git();
+    if (await isRepo(local)) await local.remote(['set-url', 'origin', target.remote]);
+  }
   const gv = await git();
   await configureIdentity(gv);
   if (await lfsAvailable()) await gv.raw(['lfs', 'pull']).catch(() => {});
@@ -283,7 +333,7 @@ export async function log(filePath: string, limit = 50): Promise<GitCommit[]> {
   const g = await git();
   if (!(await isRepo(g))) return [];
   // 入参为「相对内容根」路径，git 需要「相对仓库根」路径。
-  const repoPath = contentToRepo(filePath, await contentRootPrefix());
+  const repoPath = contentToRepo(await canonicalRelativePath(filePath), await contentRootPrefix());
   try {
     const res = await g.log({ file: repoPath, maxCount: limit });
     return res.all.map((c) => ({
@@ -300,34 +350,22 @@ export async function log(filePath: string, limit = 50): Promise<GitCommit[]> {
 /** File contents at a specific commit (`git show <hash>:<path>`). 入参为相对内容根路径。 */
 export async function showFile(hash: string, filePath: string): Promise<string> {
   const g = await git();
-  const repoPath = contentToRepo(filePath, await contentRootPrefix());
+  const repoPath = contentToRepo(await canonicalRelativePath(filePath), await contentRootPrefix());
+  if (!/^[0-9a-f]{7,64}$/i.test(hash)) throw new Error('A concrete commit hash is required');
   // simple-git's show() takes the pathspec as one element; `<hash>:<path>`.
   return g.show([`${hash}:${repoPath}`]);
 }
 
 async function pullImpl(): Promise<string> {
+  const target = await writeTarget();
   const g = await git();
-  await ensureLfsAttributes();
-  const s = await getSettings();
-  // Pull must use the authenticated remote too. push() set-urls before pushing but
-  // pull() didn't, so a fresh clone's tokenless origin made pull fail auth → "Pull
-  // skipped" → the subsequent push hit a diverged remote → "fetch first" forever.
+  await assertTargetRepository(g, target);
+  if (!(await g.status()).isClean()) throw new Error('Pull requires a clean working tree and index');
+  await assertNoPendingReceipt();
   const remote = await authedRemote();
-  if (remote) await g.remote(['set-url', 'origin', remote]);
-  const branch = await editBranch();
-  // `--allow-unrelated-histories`: a vault that was `git init`'d locally and a
-  // remote that already has commits have no common ancestor; without this, the
-  // first pull aborts with "refusing to merge unrelated histories" and sync can
-  // never converge. Harmless (no-op) once the histories share a base.
-  const res = await g.pull('origin', branch, {
-    '--no-rebase': null,
-    '--allow-unrelated-histories': null,
-    // 部分提交后，未勾选的文件仍是「未提交改动」，会阻止 pull 的 merge。
-    // --autostash 会临时 stash 这些改动、pull 完再恢复，保证投稿流程不中断。
-    '--autostash': null,
-  });
-  if (await lfsAvailable()) await g.raw(['lfs', 'pull']).catch(() => {});
-  return `Pulled: ${res.summary.changes} changes, +${res.summary.insertions}/-${res.summary.deletions}`;
+  await g.raw(['fetch', '--no-tags', remote, `refs/heads/${target.edit}`]);
+  await g.raw(['merge', '--ff-only', 'FETCH_HEAD']);
+  return `Fast-forwarded ${target.edit}`;
 }
 
 /**
@@ -355,8 +393,7 @@ function changeKind(f: { index?: string; working_dir?: string }): GitChange['kin
 
 /** 内容根相对仓库根的前缀（如 'docs/start'），空串表示仓库根。 */
 async function contentRootPrefix(): Promise<string> {
-  const s = await getSettings();
-  return (s.vault.root ?? '').trim().replace(/^[/\\]+|[/\\]+$/g, '');
+  return path.relative(await fs.realpath(await getVaultRoot()), await getContentRoot()).split(path.sep).join('/');
 }
 
 /** 仓库相对路径 → 内容根相对路径；不在内容根内返回 null。 */
@@ -388,12 +425,14 @@ function hasNoDotSegments(rel: string): boolean {
 async function changesImpl(): Promise<GitChange[]> {
   const g = await git();
   if (!(await isRepo(g))) return [];
-  const st = await g.status();
+  const st = await g.status(['--untracked-files=all']);
   const root = await contentRootPrefix();
   const out: GitChange[] = [];
   for (const f of st.files) {
     const rel = repoToContent(f.path, root);
     if (rel === null || !rel || !hasNoDotSegments(rel)) continue;
+    const previous = f.from ? repoToContent(f.from, root) : null;
+    if (previous && previous !== rel && hasNoDotSegments(previous)) out.push({ path: previous, kind: 'deleted', staged: true });
     out.push({
       path: rel,
       kind: changeKind(f),
@@ -413,9 +452,7 @@ async function discardImpl(paths: string[]): Promise<number> {
   const g = await git();
   if (!(await isRepo(g))) return 0;
   const root = await contentRootPrefix();
-  const clean = paths
-    .map((p) => String(p))
-    .filter((p) => p && !p.startsWith('/') && !p.includes('\0'));
+  const clean = await selectedPaths(paths);
   if (!clean.length) return 0;
   const repoPaths = clean.map((p) => contentToRepo(p, root));
 
@@ -429,36 +466,35 @@ async function discardImpl(paths: string[]): Promise<number> {
 
   if (tracked.length) {
     // 还原工作区 + 暂存区到 HEAD（既撤销修改也取消暂存）。
-    await g.raw(['checkout', 'HEAD', '--', ...tracked]);
+    await g.raw(['--literal-pathspecs', 'checkout', 'HEAD', '--', ...tracked]);
   }
   if (newFiles.length) {
-    await g.raw(['clean', '-f', '--', ...newFiles]);
+    await g.raw(['--literal-pathspecs', 'clean', '-f', '--', ...newFiles]);
   }
   return clean.length;
 }
 
-/**
- * 只暂存指定路径（VS Code 式部分提交）。入参为「相对内容根」路径。先清空
- * 暂存区，再按路径 `git add -A`（同时覆盖新增/修改/删除）。paths 为空时
- * 回退为「内容根目录下的全部改动」（排除 `.trash` 等点目录）。
- */
-async function stagePaths(g: SimpleGit, paths: string[]): Promise<void> {
-  const root = await contentRootPrefix();
-  if (!paths.length) {
-    // 未指定路径：只暂存内容根，排除回收站，避免把垃圾/越界文件带上。
-    const spec = root || '.';
-    await g.raw(['add', '-A', '--', spec, `:(exclude)${spec}/.trash`]).catch(async () => {
-      await g.add(spec);
-    });
-    return;
+/** Resolve every selected file before touching any index. Directories must be
+ * expanded by the change list, never passed as broad Git pathspecs. */
+async function selectedPaths(paths: string[] | undefined, role: 'owner' | 'guest' = 'owner'): Promise<string[]> {
+  if (paths !== undefined && (!Array.isArray(paths) || paths.some(p => typeof p !== 'string' || !p.trim()))) {
+    throw Object.assign(new Error('paths must contain non-empty file paths'), { status: 400 });
   }
-  // 清空暂存区，保证「只提交勾选的文件」语义可预测（本应用不依赖既有暂存状态）。
-  await g.raw(['reset']).catch(() => {});
-  const repoPaths = paths
-    .map((p) => String(p))
-    .filter((p) => p && !p.startsWith('/') && !p.includes('\0'))
-    .map((p) => contentToRepo(p, root));
-  await g.raw(['add', '-A', '--', ...repoPaths]);
+  let source = paths;
+  if (source === undefined) {
+    source = [];
+    for (const change of await changesImpl()) if (role === 'owner' || await isGuestWritable(change.path)) source.push(change.path);
+  }
+  const result: string[] = [];
+  for (const requested of source) {
+    const canonical = await canonicalRelativePath(requested);
+    if (!canonical || !hasNoDotSegments(canonical)) throw Object.assign(new Error('Select a visible content file'), { status: 400 });
+    if (role === 'guest') await assertGuestWritable(canonical);
+    const st = await fs.lstat(path.join(await getContentRoot(), canonical)).catch((e: any) => { if (e?.code === 'ENOENT') return null; throw e; });
+    if (st?.isDirectory()) throw Object.assign(new Error('Select individual files, not directories'), { status: 400 });
+    result.push(canonical);
+  }
+  return [...new Set(result)];
 }
 
 /**
@@ -532,50 +568,73 @@ export function describeChanges(st: StatusResult): { subject: string; body: stri
   return { subject, body };
 }
 
-async function commitAllImpl(message?: string, paths?: string[]): Promise<string> {
-  const g = await git();
-  await configureIdentity(g);
-  await ensureLfsAttributes();
-  // 指定 paths 时只暂存这些文件（部分提交）；否则暂存全部。
-  await stagePaths(g, paths ?? []);
-  const st = await g.status();
-  // 没有暂存内容 → 无需提交（勾选的文件可能没有实际改动）。
-  if (st.staged.length === 0) return 'Nothing to commit';
-  const { subject, body } = describeChanges(st);
-  // A caller-supplied message (e.g. a manual commit with a typed message) wins
-  // as the subject; otherwise auto-derive one naming the notes. The file list
-  // always goes in the body so `git log` shows precisely what was synced.
+async function commitAllImpl(message?: string, paths?: string[], role: 'owner' | 'guest' = 'owner'): Promise<string> {
+  const selected = await selectedPaths(paths, role);
+  if (!selected.length) return 'Nothing to commit';
   const supplied = message?.trim();
-  // 在线编辑必须经过提交模板：调用方传入的信息需符合「中文前缀: 描述」规范，
-  // 否则拒绝提交（避免产生不符合 Wiki 仓库 CI 校验的提交）。
-  if (supplied && !isValidCommitMessage(supplied)) {
-    throw new Error(
-      '提交信息不符合规范，请使用「中文前缀: 详细说明」格式（例如「新增: 添加市北校区建筑与设施信息」）',
-    );
-  }
-  const finalSubject = supplied || subject;
-  const full = body ? `${finalSubject}\n\n${body}` : finalSubject;
-  const res = await g.commit(full);
-  return `Committed ${res.commit || ''} (${res.summary.changes} files): ${finalSubject}`;
+  if (supplied && !isValidCommitMessage(supplied)) throw Object.assign(new Error('Invalid commit message template'), { status: 400 });
+  const g = await git();
+  if (!(await isRepo(g))) throw new Error('Initialize the repository before committing');
+  await assertRepositoryIdle(g);
+  const branch = await editBranch();
+  if ((await g.raw(['symbolic-ref', '--short', 'HEAD'])).trim() !== branch) throw new Error('Current branch is not the configured editing branch');
+  const root = await getVaultRoot();
+  const prefix = await contentRootPrefix();
+  const repoPaths = selected.map(p => contentToRepo(p, prefix));
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'webobsidian-index-'));
+  const s = await getSettings();
+  const isolatedEnv = gitEnvironment({
+    GIT_INDEX_FILE: path.join(temporary, 'index'), GIT_LITERAL_PATHSPECS: '1',
+    GIT_AUTHOR_NAME: s.git.authorName || 'WebObsidian', GIT_AUTHOR_EMAIL: s.git.authorEmail || 'webobsidian@localhost',
+    GIT_COMMITTER_NAME: s.git.authorName || 'WebObsidian', GIT_COMMITTER_EMAIL: s.git.authorEmail || 'webobsidian@localhost',
+  });
+  const isolated = simpleGit({ baseDir: root, trimmed: true, allowEnvironment: Object.keys(isolatedEnv) }).env(isolatedEnv);
+  try {
+    const previous = await g.revparse(['--verify', 'HEAD']).catch(() => '');
+    if (previous) await isolated.raw(['read-tree', previous]);
+    else await isolated.raw(['read-tree', '--empty']);
+    // --literal-pathspecs prevents a filename containing '*' or ':' from widening selection.
+    await isolated.raw(['--literal-pathspecs', 'add', '-A', '--', ...repoPaths]);
+    const tree = (await isolated.raw(['write-tree'])).trim();
+    const oldTree = previous ? (await g.revparse([`${previous}^{tree}`])).trim() : '';
+    if (tree === oldTree) return 'Nothing to commit';
+    const changed = (await isolated.raw(['diff', '--cached', '--name-only', '--no-renames', '-z', ...(previous ? [previous] : [])])).split('\0').filter(Boolean);
+    if (changed.some(p => !repoPaths.includes(p))) throw new Error('Commit tree contains a path outside the authorized selection');
+    const st = await isolated.status();
+    const described = describeChanges(st);
+    const subject = supplied || described.subject;
+    const full = described.body ? `${subject}\n\n${described.body}` : subject;
+    const commit = (await isolated.raw(['commit-tree', tree, ...(previous ? ['-p', previous] : []), '-m', full])).trim();
+    // Compare-and-swap refuses concurrent branch movement. No hooks, reset or merge recovery.
+    await g.raw(['update-ref', `refs/heads/${branch}`, commit, previous || '0'.repeat(40)]);
+    // Only selected index entries follow the new HEAD; unrelated staged blobs stay intact.
+    await g.raw(['--literal-pathspecs', 'reset', '-q', commit, '--', ...repoPaths]);
+    return `Committed ${commit} (${changed.length} files): ${subject}`;
+  } finally { await fs.rm(temporary, { recursive: true, force: true }); }
 }
 
 async function pushImpl(branchOverride?: string): Promise<string> {
+  const target = await writeTarget();
+  if (branchOverride !== undefined && branchOverride !== target.edit) throw new Error('Branch override conflicts with configured editing branch');
   const g = await git();
-  // 访客投稿强制推送到 web-edit（branchOverride），不信任任何客户端输入。
-  const branch = branchOverride || (await editBranch());
-  const remote = await authedRemote();
-  if (remote) await g.remote(['set-url', 'origin', remote]);
-  // 在线编辑统一推送到 origin/<editBranch>（默认 web-edit）。
-  // 用显式 refspec 推送当前 HEAD，避免本地分支名与目标分支名不一致的问题。
-  await g.push('origin', `HEAD:refs/heads/${branch}`);
-  return `已推送到 origin/${branch}`;
+  await assertTargetRepository(g, target);
+  await assertNoPendingReceipt();
+  const commit = (await g.revparse(['HEAD'])).trim();
+  const receipt = newReceipt(target, commit, false);
+  await saveReceipt(receipt);
+  try {
+    await g.push(await authedRemote(), `HEAD:refs/heads/${target.edit}`);
+    receipt.phase = 'complete'; receipt.pushed = true;
+    await saveReceipt(receipt);
+    return `Pushed ${commit} to ${target.edit}; no merge or publication performed`;
+  } catch { receipt.phase = 'push_unknown'; await saveReceipt(receipt); throw new Error('Push outcome unknown; inspect sync status before any retry'); }
 }
 
 /**
  * 为在线编辑分支创建（或复用）Pull Request：editBranch → baseBranch。
  * 需要 GitHub App 已配置且能解析出 owner/repo。
  */
-export async function openPullRequest(opts?: {
+async function openPullRequestImpl(opts?: {
   title?: string;
   body?: string;
 }): Promise<{ number: number; html_url: string; created: boolean }> {
@@ -583,194 +642,71 @@ export async function openPullRequest(opts?: {
   if (!(await isGithubAppConfigured())) {
     throw new Error('GitHub App 尚未配置，无法创建 PR');
   }
-  const remote = s.git.remote.trim();
-  const parsed = parseGithubRemote(remote);
-  const owner = s.github.owner || parsed?.owner || '';
-  const repo = s.github.repo || parsed?.repo || '';
-  if (!owner || !repo) throw new Error('无法确定目标仓库（owner/repo）');
-  const head = s.github.editBranch || 'web-edit';
-  const base = s.github.baseBranch || s.git.branch || 'contribute';
+  const target = await writeTarget(true);
+  const { owner, repo, edit: head, base } = target;
   const title = opts?.title?.trim() || `在线编辑: 更新 ${head} 分支`;
   const body =
     opts?.body?.trim() ||
-    `本 PR 由 QUT WiKi 在线编辑器自动创建，来源分支：\`${head}\`，目标分支：\`${base}\`。\n\n请审核内容后合并。`;
+    `本 PR 由在线编辑器自动创建，来源分支：\`${head}\`，目标分支：\`${base}\`。\n\n请审核内容后合并。`;
   return createOrGetPullRequest({ owner, repo, title, body, head, base });
 }
 
-/** 解析远程仓库的 owner/repo（settings.github 优先，回退解析 remote URL）。 */
-async function resolveRepoRef(): Promise<{ owner: string; repo: string }> {
-  const s = await getSettings();
-  const parsed = parseGithubRemote(s.git.remote.trim());
-  return { owner: s.github.owner || parsed?.owner || '', repo: s.github.repo || parsed?.repo || '' };
-}
-
-/** 查询编辑分支是否存在未合并的 PR；无法判断（App 未配置）时返回 null。 */
-async function openPrForEdit(): Promise<{ number: number; html_url: string; base: string } | null> {
-  const { owner, repo } = await resolveRepoRef();
-  if (!owner || !repo || !(await isGithubAppConfigured())) return null;
-  return findOpenPullRequest({ owner, repo, head: await editBranch() });
-}
-
-/**
- * 编辑分支是否已包含主分支（即不落后）。
- * 注意：不能用 `git merge-base --is-ancestor`——simple-git 的 raw() 在该命令以
- * 退出码 1（非祖先）结束时仍会 resolve，导致误判。改用 `rev-list --count`：
- * `<editRef>..<baseRef>` 为主分支有、编辑分支没有的提交数，为 0 即已包含。
- */
-async function editContainsBase(g: SimpleGit, baseRef: string, editRef: string): Promise<boolean> {
-  const out = await g.raw(['rev-list', '--count', `${editRef}..${baseRef}`]).catch(() => '1');
-  return Number(out.trim()) === 0;
-}
-
-/**
- * 把主分支合并进本地编辑分支并推送（假定已确认需要合并）。
- * --autostash：访客可能正在编辑（工作区有未提交改动），先临时 stash 再合并，合并后自动恢复。
- */
-async function mergeBaseIntoEdit(
-  g: SimpleGit,
-  baseRef: string,
-  edit: string,
-): Promise<{ ok: boolean; log: string[] }> {
-  // 确保本地在编辑分支上，且与远端一致（无本地独有提交时快进）。
-  const st = await g.status();
-  if (st.current !== edit) await g.checkout(edit).catch(() => {});
-  await g.raw(['merge', '--ff-only', `origin/${edit}`]).catch(() => {});
-
-  try {
-    await g.merge([baseRef, '--no-edit', '--autostash']);
-  } catch {
-    // 合并冲突：能自动解决的生成文件冲突就解决，否则中止并报告。
-    if (await resolveNoiseConflicts(g)) {
-      await g.raw(['commit', '--no-edit']).catch(() => {});
-    } else {
-      const cst = await g.status();
-      await g.raw(['merge', '--abort']).catch(() => {});
-      return { ok: false, log: [`合并主分支产生冲突，已中止：${cst.conflicted.join(', ')}`] };
-    }
-  }
-
-  try {
-    await g.push('origin', `HEAD:refs/heads/${edit}`);
-  } catch (e: any) {
-    return { ok: false, log: [`推送失败：${redactUrlCreds(e.message)}`] };
-  }
-  return { ok: true, log: [`已合并主分支 ${baseRef.replace(/^origin\//, '')} → ${edit}`] };
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * 投稿前的分支状态检查：确保编辑分支基于最新的主分支。
- *
- * - 编辑分支有未合并 PR：上一批编辑仍在审核，提示等待维护者合并，本次中止；
- * - 编辑分支落后主分支（Actions 空窗期）：优先触发 GitHub Actions 同步工作流并
- *   轮询等待追平；无法触发（App 无 Actions 权限）或超时则本地合并主分支兜底。
- *
- * 返回 { blocked: true } 表示应中止本次投稿。
- */
-async function preSyncCheck(g: SimpleGit, s: Awaited<ReturnType<typeof getSettings>>): Promise<{ blocked: boolean; log: string[] }> {
-  const log: string[] = [];
-  const edit = await editBranch();
-  const base = (s.github.baseBranch || s.git.branch || 'contribute').trim();
-  if (!base || base === edit) return { blocked: false, log };
-
-  const { owner, repo } = await resolveRepoRef();
-  const appReady = owner && repo && (await isGithubAppConfigured());
-
-  // 1) 有未合并 PR → 等待维护者合并。
-  if (appReady) {
-    try {
-      const pr = await findOpenPullRequest({ owner, repo, head: edit });
-      if (pr) {
-        return {
-          blocked: true,
-          log: [`编辑分支已有未合并的 PR #${pr.number}（${pr.html_url}），请等待维护者合并后再提交`],
-        };
-      }
-    } catch (e: any) {
-      log.push(`检查 PR 状态失败（继续）：${redactUrlCreds(e.message)}`);
-    }
-  }
-
-  // 2) 编辑分支是否落后主分支。
-  await g.raw(['fetch', 'origin', base, edit]).catch(() => {});
-  const baseRef = `origin/${base}`;
-  if (await editContainsBase(g, baseRef, `origin/${edit}`)) return { blocked: false, log }; // 已最新
-
-  // 空窗期：优先触发 Actions 同步工作流（若 App 有 Actions 权限）。
-  if (appReady) {
-    try {
-      await dispatchWorkflow({ owner, repo, workflow: 'sync-web-edit.yml', ref: base });
-      log.push('已触发 GitHub Actions 同步工作流，等待编辑分支跟进主分支…');
-      for (let i = 0; i < 6; i++) {
-        await sleep(5000);
-        await g.raw(['fetch', 'origin', edit]).catch(() => {});
-        if (await editContainsBase(g, baseRef, `origin/${edit}`)) {
-          log.push('编辑分支已跟进主分支');
-          return { blocked: false, log };
-        }
-      }
-      log.push('工作流未在预期时间内完成，改为本地同步');
-    } catch (e: any) {
-      log.push(`触发同步工作流失败，改为本地同步：${redactUrlCreds(e.message)}`);
-    }
-  }
-
-  // 兜底：本地合并主分支（此时 Actions 若已结束则不会与其竞争）。
-  const res = await mergeBaseIntoEdit(g, baseRef, edit);
-  log.push(...res.log);
-  return { blocked: false, log };
-}
-
-/**
- * 让编辑分支自动跟进主分支（定时任务调用）：把 baseBranch（如 contribute）合并进
- * editBranch（如 web-edit），使在线编辑器始终基于最新的主分支内容。
- *
- * 规则：
- * - 编辑分支存在**未合并的 PR** 时暂停跟进，避免把待审核的编辑内容与主分支改动混在一起；
- * - 主分支已是编辑分支的祖先时（无新提交）直接跳过；
- * - 合并通常是快进（fast-forward），不会产生多余的合并提交。
- */
-async function followBaseImpl(): Promise<{ ok: boolean; merged: boolean; log: string[] }> {
-  const log: string[] = [];
-  const s = await getSettings();
+/** A standalone PR request uses the same durable no-replay boundary as sync. */
+export const openPullRequest = (opts?: { title?: string; body?: string }): Promise<{ number: number; html_url: string; created: boolean }> => withGitLock(async () => {
+  const target = await writeTarget(true);
   const g = await git();
-  if (!(await isRepo(g))) return { ok: true, merged: false, log: ['非 git 仓库，跳过'] };
-
-  const edit = await editBranch();
-  const base = (s.github.baseBranch || s.git.branch || 'contribute').trim();
-  if (!base || base === edit) return { ok: true, merged: false, log: ['主分支与编辑分支相同，跳过'] };
-
-  const remote = await authedRemote();
-  if (remote) await g.remote(['set-url', 'origin', remote]);
-
-  // 有未合并 PR → 暂停跟进。
+  await assertTargetRepository(g, target);
+  await assertNoPendingReceipt();
+  const refs = await g.raw(['ls-remote', await authedRemote(), `refs/heads/${target.edit}`]);
+  const commit = refs.split(/\s+/)[0];
+  if (!/^[0-9a-f]{40,64}$/i.test(commit)) throw new Error('The remote editing branch is missing');
+  const receipt = newReceipt(target, commit, true);
+  receipt.pushed = true; receipt.phase = 'pr_pending'; await saveReceipt(receipt);
   try {
-    const pr = await openPrForEdit();
-    if (pr) {
-      return { ok: true, merged: false, log: [`编辑分支存在未合并 PR #${pr.number}，暂停跟进主分支`] };
-    }
-  } catch (e: any) {
-    // 查询失败（网络/权限）时保守跳过，避免误合并。
-    return { ok: false, merged: false, log: [`检查 PR 失败，跳过跟进：${redactUrlCreds(e.message)}`] };
+    const pr = await openPullRequestImpl(opts);
+    receipt.pr = { number: pr.number, html_url: pr.html_url }; receipt.phase = 'complete'; await saveReceipt(receipt);
+    return pr;
+  } catch {
+    receipt.phase = 'pr_unknown'; await saveReceipt(receipt);
+    throw new Error('Pull request outcome unresolved; query sync status before retrying');
   }
+});
 
-  // 拉取主分支与编辑分支的最新引用。
-  await g.raw(['fetch', 'origin', base, edit]).catch(() => {});
-  const baseRef = `origin/${base}`;
-
-  // 主分支已是编辑分支祖先 → 无新提交。
-  if (await editContainsBase(g, baseRef, `origin/${edit}`)) {
-    return { ok: true, merged: false, log: ['编辑分支已包含主分支最新提交，无需跟进'] };
+/** Follow base is explicit, clean and fast-forward-only; no automatic workflow
+ * dispatch, force push, hidden stashes or conflict-resolution commits. */
+async function followBaseImpl(): Promise<{ ok: boolean; merged: boolean; log: string[] }> {
+  const target = await writeTarget();
+  const g = await git();
+  await assertTargetRepository(g, target);
+  await assertNoPendingReceipt();
+  if (!(await g.status()).isClean()) return { ok: false, merged: false, log: ['Follow-base requires a clean worktree and index'] };
+  if (!target.local) {
+    if (!(await isGithubAppConfigured())) return { ok: false, merged: false, log: ['Cannot verify pending pull requests without GitHub App'] };
+    const pr = await findOpenPullRequest({ owner: target.owner, repo: target.repo, head: target.edit });
+    if (pr) return { ok: true, merged: false, log: ['An open pull request is awaiting review; base following paused'] };
   }
-
-  const res = await mergeBaseIntoEdit(g, baseRef, edit);
-  return { ok: res.ok, merged: res.ok, log: res.log };
+  const old = (await g.revparse(['HEAD'])).trim();
+  await g.raw(['fetch', '--no-tags', await authedRemote(), `refs/heads/${target.base}`]);
+  try { await g.raw(['merge', '--ff-only', 'FETCH_HEAD']); }
+  catch { return { ok: false, merged: false, log: ['Base cannot fast-forward; resolve in a reviewed local operation'] }; }
+  const current = (await g.revparse(['HEAD'])).trim();
+  if (old === current) return { ok: true, merged: false, log: ['Editing branch already includes base'] };
+  await pushImpl();
+  return { ok: true, merged: true, log: [`Fast-forwarded ${target.edit} to base; no pull request merge or publication performed`] };
 }
 
-/** 公开的、串行化的「跟进主分支」操作（与其它 git 操作共用队列）。 */
-export const followBase = (): Promise<{ ok: boolean; merged: boolean; log: string[] }> =>
-  withGitLock(followBaseImpl);
+export const followBase = (): Promise<{ ok: boolean; merged: boolean; log: string[] }> => withGitLock(followBaseImpl);
+
+export const syncAutomatic = (): Promise<SyncResult> => withGitLock(async () => {
+  const s = await getSettings();
+  if (s.publicEditor.enabled || !s.git.enabled || !s.git.autoSync || !s.git.remote) return { ok: true, noop: true, log: ['Automatic sync is disabled for this snapshot'], publication: 'not_performed' };
+  return syncImpl();
+});
+export const followBaseAutomatic = (): Promise<{ ok: boolean; merged: boolean; log: string[] }> => withGitLock(async () => {
+  const s = await getSettings();
+  if (s.publicEditor.enabled || !s.git.enabled || !s.github.autoFollowBase || !s.git.remote) return { ok: true, merged: false, log: ['Automatic base following is disabled for this snapshot'] };
+  return followBaseImpl();
+});
 
 // Debounced auto-commit (+push) after saves, when enabled in settings.
 let autoCommitTimer: NodeJS.Timeout | null = null;
@@ -778,112 +714,127 @@ export function scheduleAutoCommitOnSave(): void {
   if (autoCommitTimer) clearTimeout(autoCommitTimer);
   autoCommitTimer = setTimeout(async () => {
     try {
-      const s = await getSettings();
-      if (!s.git.enabled || !s.git.autoCommitOnSave) return;
-      // Full sync (pull→merge→push), not a bare push: pushing without first
-      // integrating the remote is exactly what left the repo permanently rejected
-      // ("fetch first") once another device had pushed in the meantime.
-      if (s.git.remote) await sync().catch((e) => console.warn('[git] auto-sync failed:', redactUrlCreds(e?.message)));
-      else await commitAll();
+      await withGitLock(async () => {
+        const s = await getSettings();
+        if (!s.git.enabled || !s.git.autoCommitOnSave || s.publicEditor.enabled) return;
+        if (s.git.remote) await syncImpl();
+        else await commitAllImpl();
+      });
     } catch (e: any) {
       console.warn('[git] auto-commit failed:', redactUrlCreds(e.message));
     }
   }, 5000);
 }
 
-/** Auto-resolve conflicts in machine-generated files so multi-device sync converges
- *  without manual intervention: regenerate .gitattributes, keep our copy of Obsidian
- *  UI state (.obsidian/**). Returns true only if ALL conflicts were resolved. */
-async function resolveNoiseConflicts(g: SimpleGit): Promise<boolean> {
-  const st = await g.status();
-  if (!st.conflicted.length) return true;
-  let remaining = 0;
-  for (const f of st.conflicted) {
-    if (f === '.gitattributes') {
-      await ensureLfsAttributes();
-      await g.add(['.gitattributes']);
-    } else if (f.startsWith('.obsidian/')) {
-      await g.raw(['checkout', '--ours', '--', f]).catch(() => {});
-      await g.add([f]);
-    } else {
-      remaining++;
-    }
-  }
-  return remaining === 0;
+export interface SyncReceipt {
+  id: string; remote: string; edit: string; base: string; owner: string; repo: string;
+  commit: string; phase: 'push_pending' | 'push_unknown' | 'pr_pending' | 'pr_unknown' | 'complete';
+  pushed: boolean | null; prRequired: boolean; pr?: { number: number; html_url: string }; updatedAt: string;
 }
-
-/** If a previous sync left an unfinished/conflicted merge, get back to a clean state
- *  so the next sync isn't permanently stuck on "you have unmerged files". */
-async function recoverMerge(g: SimpleGit): Promise<void> {
-  const root = await getVaultRoot();
+export interface SyncResult { ok: boolean; log: string[]; noop?: boolean; committed?: string; pushed?: boolean | null; pullRequest?: SyncReceipt['pr']; publication: 'not_performed'; receipt?: SyncReceipt }
+const RECEIPT_FILE = path.join(config.dataDir, 'git-sync-receipt.json');
+function newReceipt(target: WriteTarget, commit: string, prRequired: boolean): SyncReceipt {
+  return { id: randomUUID(), remote: remoteIdentity(target.remote), edit: target.edit, base: target.base, owner: target.owner, repo: target.repo,
+    commit, phase: 'push_pending', pushed: null, prRequired, updatedAt: new Date().toISOString() };
+}
+async function saveReceipt(receipt: SyncReceipt): Promise<void> {
+  await fs.mkdir(config.dataDir, { recursive: true });
+  const temporary = `${RECEIPT_FILE}.${randomUUID()}.tmp`;
+  receipt.updatedAt = new Date().toISOString();
+  try { await fs.writeFile(temporary, JSON.stringify(receipt), { mode: 0o600 }); await fs.rename(temporary, RECEIPT_FILE); }
+  finally { await fs.rm(temporary, { force: true }); }
+}
+async function readReceipt(): Promise<SyncReceipt | null> {
   try {
-    await fs.access(path.join(root, '.git', 'MERGE_HEAD'));
-  } catch {
-    return; // not mid-merge
-  }
-  if (await resolveNoiseConflicts(g)) {
-    await g.raw(['commit', '--no-edit']).catch(() => {});
-  } else {
-    await g.raw(['merge', '--abort']).catch(async () => {
-      await g.raw(['reset', '--merge']).catch(() => {});
-    });
-  }
+    const value = JSON.parse(await fs.readFile(RECEIPT_FILE, 'utf8'));
+    if (!value || typeof value.id !== 'string' || typeof value.commit !== 'string' || !['push_pending','push_unknown','pr_pending','pr_unknown','complete'].includes(value.phase)) throw new Error('Invalid sync receipt');
+    return value as SyncReceipt;
+  } catch (e: any) { if (e?.code === 'ENOENT') return null; throw new Error('Sync receipt cannot be read safely; preserve it for recovery'); }
+}
+async function assertNoPendingReceipt(): Promise<void> {
+  const receipt = await readReceipt();
+  if (receipt && receipt.phase !== 'complete') throw new Error(`Previous Git write outcome requires read-only reconciliation (${receipt.id})`);
 }
 
-/** Convenience: stage+commit+pull+push in one go. Reports conflicts. Runs entirely
- *  inside the git queue (via the exported `sync` wrapper), so it calls the unlocked
- *  *Impl helpers directly — re-entering withGitLock here would dead-lock. */
-async function syncImpl(
-  message?: string,
-  branchOverride?: string,
-  paths?: string[],
-): Promise<{ ok: boolean; log: string[] }> {
-  const log: string[] = [];
+/** Query-only reconciliation: never retries push/PR, creates a commit or changes a branch. */
+export const syncStatus = (): Promise<SyncReceipt | null> => withGitLock(async () => {
+  const receipt = await readReceipt();
+  if (!receipt || receipt.phase === 'complete') return receipt;
+  const target = await writeTarget(receipt.prRequired);
+  if (receipt.remote !== remoteIdentity(target.remote) || receipt.edit !== target.edit || receipt.base !== target.base) throw new Error('Receipt belongs to another target; restore its configuration for read-only reconciliation');
   const g = await git();
-  if (!(await isRepo(g))) {
-    await initImpl();
-    log.push('Initialized repository');
+  if (!receipt.pushed) {
+    const refs = await g.raw(['ls-remote', await authedRemote(), `refs/heads/${target.edit}`]);
+    if (refs.split(/\s+/)[0] !== receipt.commit) return receipt;
+    receipt.pushed = true;
   }
-  await recoverMerge(g); // unwedge a prior stuck merge before doing anything
-  log.push(await commitAllImpl(message || '', paths));
+  if (receipt.prRequired) {
+    const pr = await findOpenPullRequest({ owner: target.owner, repo: target.repo, head: target.edit });
+    if (!pr || pr.base !== target.base) { await saveReceipt(receipt); return receipt; }
+    receipt.pr = { number: pr.number, html_url: pr.html_url };
+  }
+  receipt.phase = 'complete'; await saveReceipt(receipt); return receipt;
+});
 
-  // 投稿前检查：编辑分支必须基于最新主分支。若已有未合并 PR 则中止本次投稿；
-  // 若处于 Actions 空窗期则触发同步工作流（或本地合并）先行跟进。
+async function syncImpl(message?: string, branchOverride?: string, paths?: string[], role: 'owner' | 'guest' = 'owner'): Promise<SyncResult> {
+  // A clean worktree is common after a failed push/PR: never hide an unresolved
+  // receipt behind a successful no-op, even for an explicit empty selection.
+  await assertNoPendingReceipt();
+  const selected = await selectedPaths(paths, role);
+  const ownerFullSync = role === 'owner' && paths === undefined;
+  if (!selected.length && !ownerFullSync) return { ok: true, noop: true, log: ['No authorized file changes selected'], publication: 'not_performed' };
+  const target = await writeTarget(role === 'guest');
+  if (branchOverride !== undefined && branchOverride !== target.edit) throw new Error('Branch override conflicts with configured editing branch');
+  const g = await git();
+  await assertTargetRepository(g, target);
+  await assertNoPendingReceipt();
+  // Remote review queries happen before the local commit. Failures stop without mutation.
   const s = await getSettings();
-  const pre = await preSyncCheck(g, s);
-  if (pre.log.length) log.push(...pre.log);
-  if (pre.blocked) return { ok: false, log };
-
-  try {
-    log.push(await pullImpl());
-  } catch (e: any) {
-    // Pull hit a merge conflict. Auto-resolve generated-file noise and finish the
-    // merge; only bail (cleanly, not wedged) if real note conflicts remain.
-    if (await resolveNoiseConflicts(g)) {
-      await g.raw(['commit', '--no-edit']).catch(() => {});
-      if (await lfsAvailable()) await g.raw(['lfs', 'pull']).catch(() => {});
-      log.push('Pulled (auto-resolved generated-file conflicts)');
-    } else {
-      const st = await g.status();
-      await g.raw(['merge', '--abort']).catch(() => {});
-      return { ok: false, log: [...log, `Conflicts need manual resolution: ${st.conflicted.join(', ')}`] };
-    }
+  if (!target.local && await isGithubAppConfigured()) {
+    const existing = await findOpenPullRequest({ owner: target.owner, repo: target.repo, head: target.edit });
+    if (existing) return { ok: false, log: ['An existing pull request is awaiting review; no new commit or push was performed'], publication: 'not_performed', pullRequest: { number: existing.number, html_url: existing.html_url } };
   }
-  try {
-    log.push(await pushImpl(branchOverride));
-  } catch (e: any) {
-    // Redact: a push failure echoes the authenticated remote URL (PAT embedded).
-    log.push(`Push failed: ${redactUrlCreds(e.message)}`);
-    return { ok: false, log };
+  // Verify the remote edit/base ancestry without hidden merges or automatic actions.
+  const remote = await authedRemote();
+  const refs = await g.raw(['ls-remote', remote, `refs/heads/${target.edit}`, `refs/heads/${target.base}`]);
+  const remoteRefs = new Map(refs.split('\n').filter(Boolean).map(line => line.trim().split(/\s+/) as [string, string]).map(([hash, ref]) => [ref, hash]));
+  const remoteEdit = remoteRefs.get(`refs/heads/${target.edit}`);
+  const remoteBase = remoteRefs.get(`refs/heads/${target.base}`);
+  if (!remoteEdit || !remoteBase) throw new Error('Configured remote edit/base branch is missing');
+  for (const branch of [target.edit, target.base]) await g.raw(['fetch', '--no-tags', remote, `refs/heads/${branch}`]);
+  let currentHead = (await g.revparse(['HEAD'])).trim();
+  if (!ownerFullSync && remoteEdit !== currentHead) throw new Error('Editing HEAD differs from the remote editing branch; reconcile or explicitly sync reviewed local history as owner before submitting selected files');
+  const distance = async (from: string, to: string) => {
+    const count = Number((await g.raw(['rev-list', '--count', `${from}..${to}`])).trim());
+    if (!Number.isFinite(count)) throw new Error('Cannot determine branch ancestry');
+    return count;
+  };
+  const behindEdit = await distance(currentHead, remoteEdit);
+  if (behindEdit) {
+    const aheadEdit = await distance(remoteEdit, currentHead);
+    if (!ownerFullSync || aheadEdit || !(await g.status()).isClean()) throw new Error('Editing branch is behind or divergent; preserve drafts and perform a reviewed merge');
+    await g.raw(['merge', '--ff-only', remoteEdit]);
+    currentHead = (await g.revparse(['HEAD'])).trim();
   }
-  // 推送成功后，如启用 GitHub App 且开启自动 PR，则为 web-edit → base 创建/复用 PR。
-  try {
-    if (s.github.autoPullRequest && (await isGithubAppConfigured())) {
-      const pr = await openPullRequest();
-      log.push(pr.created ? `已创建 PR #${pr.number}：${pr.html_url}` : `已复用现有 PR #${pr.number}：${pr.html_url}`);
-    }
-  } catch (e: any) {
-    log.push(`PR 创建失败（内容已推送）：${redactUrlCreds(e.message)}`);
+  const behindBase = await distance(currentHead, remoteBase);
+  if (behindBase) {
+    if (!ownerFullSync || !(await g.status()).isClean() || await distance(remoteBase, currentHead)) throw new Error('Editing branch is behind the review base; perform reviewed follow-base before submitting');
+    await g.raw(['merge', '--ff-only', remoteBase]);
   }
-  return { ok: true, log };
+  const output = await commitAllImpl(message, selected, role);
+  const afterCommit = (await g.revparse(['HEAD'])).trim();
+  if (output === 'Nothing to commit' && afterCommit === remoteEdit) return { ok: true, noop: true, log: ['Owner synchronization complete; remote and local editing branches agree'], publication: 'not_performed' };
+  const commit = (await g.revparse(['HEAD'])).trim();
+  const receipt = newReceipt(target, commit, role === 'guest' || (!target.local && s.github.autoPullRequest));
+  await saveReceipt(receipt);
+  const log = [output];
+  try { await g.push(remote, `HEAD:refs/heads/${target.edit}`); receipt.pushed = true; }
+  catch { receipt.phase = 'push_unknown'; await saveReceipt(receipt); return { ok: false, committed: commit, pushed: null, receipt, publication: 'not_performed', log: [...log, 'Push outcome unknown; query sync status before retrying'] }; }
+  if (receipt.prRequired) {
+    receipt.phase = 'pr_pending'; await saveReceipt(receipt);
+    try { const pr = await openPullRequestImpl(); receipt.pr = { number: pr.number, html_url: pr.html_url }; log.push(`Pull request #${pr.number} available for review`); }
+    catch { receipt.phase = 'pr_unknown'; await saveReceipt(receipt); return { ok: false, committed: commit, pushed: true, receipt, publication: 'not_performed', log: [...log, 'Content pushed, pull request outcome unresolved; query sync status, do not resubmit'] }; }
+  }
+  receipt.phase = 'complete'; await saveReceipt(receipt);
+  return { ok: true, committed: commit, pushed: true, pullRequest: receipt.pr, receipt, publication: 'not_performed', log: [...log, 'Push complete; review/merge/publication remain separate'] };
 }

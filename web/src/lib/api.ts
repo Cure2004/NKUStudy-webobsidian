@@ -102,8 +102,8 @@ export const api = {
   // auth
   authStatus: () =>
     req<{ passwordSet: boolean; mustChangePassword: boolean; publicEditor: boolean }>('/auth/status'),
-  setup: (password: string) =>
-    req<{ ok: true }>('/auth/setup', { method: 'POST', body: JSON.stringify({ password }) }),
+  setup: (password: string, setupToken: string) =>
+    req<{ ok: true }>('/auth/setup', { method: 'POST', body: JSON.stringify({ password, setupToken }) }),
   login: (password: string) =>
     req<{ ok: true; mustChangePassword: boolean }>('/auth/login', {
       method: 'POST',

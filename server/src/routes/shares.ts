@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import type { Request } from 'express';
 import jwt from 'jsonwebtoken';
+import { createHash } from 'node:crypto';
 import { asyncHandler } from '../middleware/error.js';
+import { sharePeerRateLimit, sharePasswordRateLimit } from '../middleware/ratelimit.js';
 import { requireOwner } from '../middleware/auth.js';
 import * as vault from '../services/vault.js';
 import { resolveFile } from '../services/fileindex.js';
@@ -138,8 +140,10 @@ export async function isUnlocked(req: Request, share: ShareRecord): Promise<bool
     const payload = jwt.verify(token, s.auth.jwtSecret, { algorithms: ['HS256'] }) as {
       sub?: string;
       share?: string;
+      passwordVersion?: string;
     };
-    return payload.sub === 'share' && payload.share === share.id;
+    return payload.sub === 'share' && payload.share === share.id
+      && payload.passwordVersion === createHash('sha256').update(share.passwordHash).digest('hex');
   } catch {
     return false;
   }
@@ -149,6 +153,8 @@ export async function isUnlocked(req: Request, share: ShareRecord): Promise<bool
 // public endpoints (httpOnly so embedded <img> requests send it automatically).
 publicSharesRouter.post(
   '/:id/unlock',
+  sharePeerRateLimit,
+  sharePasswordRateLimit,
   asyncHandler(async (req, res) => {
     const share = await getActiveShare(req.params.id);
     if (!share || !share.passwordHash) {
@@ -161,7 +167,7 @@ publicSharesRouter.post(
       return;
     }
     const s = await getSettings();
-    const token = jwt.sign({ sub: 'share', share: share.id }, s.auth.jwtSecret, {
+    const token = jwt.sign({ sub: 'share', share: share.id, passwordVersion: createHash('sha256').update(share.passwordHash).digest('hex') }, s.auth.jwtSecret, {
       expiresIn: UNLOCK_TTL,
       algorithm: 'HS256',
     });
@@ -170,6 +176,7 @@ publicSharesRouter.post(
     res.cookie(unlockCookie(share.id), token, {
       httpOnly: true,
       sameSite: 'lax',
+      secure: process.env.COOKIE_SECURE === 'true' || (process.env.COOKIE_SECURE !== 'false' && req.secure),
       path: '/',
       maxAge: 12 * 60 * 60 * 1000,
     });
