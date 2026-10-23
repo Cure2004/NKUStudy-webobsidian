@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Run existing 16 volume and 19 cgroup contracts against package-owned r3 modules.
 
-Redirects all test evidence; never executes Docker. Adaptation only supplies the
+Redirects all test evidence; never executes Docker. Uses explicit synthetic
+resource limits instead of private historical sampler files, and supplies the
 new non-secret environment projection to the old mocked inspect transport.
 Usage: run_legacy_contracts.py R3_PACKAGE REPOSITORY NEW_EVIDENCE
 """
@@ -33,8 +34,19 @@ for name in ('test_volumes_r2', 'test_cgroup_r3'):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     module.EVIDENCE = evidence / name
+    module.PACKAGE = package
     modules.append(module)
     sources[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+def synthetic_resource_input(role):
+    values = {'memory.max': '536870912' if role == 'app' else '134217728',
+              'memory.swap.max': '0', 'pids.max': '96' if role == 'app' else '32',
+              'cpu.max': '50000 100000' if role == 'app' else '10000 100000'}
+    modules[1].INPUTS[role] = {'evidence_class': 'synthetic-all-fields-no-container-observation',
+                               'synthetic_fields': values,
+                               'probe_output': modules[1].output(values)}
+    return values
+modules[1].saved_input = synthetic_resource_input
 
 original_instance = modules[1].CgroupTests.instance
 def current_environment_fixture(self, *args, **kwargs):
@@ -56,7 +68,7 @@ summary = {'status': 'PASS' if result.wasSuccessful() else 'FAIL', 'unittest_cas
     'failed_cases': [str(t) for t, _ in result.failures + result.errors],
     'source_test_sha256': sources, 'runtime_module_root': str(package),
     'environment_fixture_adaptation': 'new r3 inspect projection returns synthetic NODE_ENV=production and TRUST_PROXY=1',
-    'evidence_class': 'synthetic-Docker-and-saved-cgroup-contracts-not-real-containers', 'Docker_commands': False,
+    'evidence_class': 'synthetic-Docker-and-synthetic-cgroup-contracts-not-real-containers', 'Docker_commands': False,
     'historical_evidence_untouched': True}
 (evidence / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
 print(json.dumps(summary, indent=2))
