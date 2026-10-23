@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-24",
+  "evidence_class": "local-validation-not-server-deployment",
+  "code_commit": "1bd3f6c088466c8b46b447c9516cec623bc194f6",
+  "tested_integration_commit": "be3e318f616c7d68284ffedca2bb79314bace41d",
+  "tests": {
+    "security": {
+      "passed": 83,
+      "failed": 0
+    },
+    "typecheck": "PASS",
+    "web_server_build": "PASS",
+    "desktop_typecheck": "PASS",
+    "syntax_files": 38,
+    "source_manifest_files_matched": 108,
+    "r3_package_verify": "PASS",
+    "r3_bindings": 115,
+    "r3_archive_bindings": 23,
+    "r3_legacy_synthetic": 35
+  },
+  "server_accessed": false,
+  "image_rebuilt": false,
+  "evidence_files": {
+    "security.log": {
+      "sha256": "8c6ffa6e7ad5905d54868e1b47ab0d920a276d0eae13927eaab8bc620d34c558",
+      "bytes": 22332
+    },
+    "typecheck.log": {
+      "sha256": "b2558b0b45716e6cd0e64305e99a56f2dbfe89cec15a43435d7d0fe96c1828fa",
+      "bytes": 235
+    },
+    "build.log": {
+      "sha256": "68239f0b77b5cc6d274f209b64195a6ed4fb028fbadf6c806546079c5daa114c",
+      "bytes": 22508
+    },
+    "desktop-typecheck.log": {
+      "sha256": "f8d57d03ce30d27d88e580fd87f023282a20981b33baf3fd3c143ce5a9d26a67",
+      "bytes": 64
+    },
+    "syntax-provenance.json": {
+      "sha256": "938fa6e1f987d083bca294972f053c0549d541fb450447e7e332a51e42ec7901",
+      "bytes": 31535
+    },
+    "r3-tests-summary.json": {
+      "sha256": "bdec1e9d409a1bef01cc280e20ce11779e1e565af9acb20042c9061be8bd88ed",
+      "bytes": 2972
+    },
+    "publication-review.json": {
+      "sha256": "d0dbd32e4ce83867494465146560f14de4927bda06e2cdcc3ecec6dcdb5e49b7",
+      "bytes": 7563
+    }
+  }
+}

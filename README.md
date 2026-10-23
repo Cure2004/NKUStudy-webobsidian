@@ -1,3 +1,5 @@
+> NKUStudy 开发入口：[`nkustudy-dev` 交接说明](docs/nkustudy/DEVELOPMENT.md) · [部署说明](deploy/README.md)。公网预览不会自动从本仓库更新。
+
 <div align="center">
 
 <img src="assets/logo.png" alt="WebObsidian logo" width="140" />

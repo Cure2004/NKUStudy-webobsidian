@@ -1,6 +1,8 @@
 # NKUStudy WebObsidian 开发准备交付
 
-当前交付入口：[第4A安全修复摘要](remediation/remediation-summary.md) · [实际回归结果](remediation/regression-results.md) · [第4B准入判断](remediation/next-stage-readiness.md)。
+当前交付入口：[统一开发基线与协作](DEVELOPMENT.md) · [2026-10-24 验收报告](HANDOFF-20261024.md)。
+
+以下为 4A 历史交付：[第4A安全修复摘要](remediation/remediation-summary.md) · [实际回归结果](remediation/regression-results.md) · [第4B准入判断](remediation/next-stage-readiness.md)。
 
 下列五份是第3步冻结基线的历史审计，描述修复前行为；原始 evidence 保持不变。历史交接见 [执行总结与第4步任务书](execution-summary.md)。
 
