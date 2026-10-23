@@ -1,0 +1,22 @@
+{
+  "image_tag": "nkustudy/webobsidian:4b-1bd3f6c-r2",
+  "image_config_digest": "sha256:b452934919d5dcee5a0c252716e9ef92d509456198acc85043cfbe6e24906c21",
+  "image_manifest_digest": "sha256:05078036f07abe6fb1d21b840915561eb0d026d5bd33ccf417c18dcd65d6469b",
+  "image_index_digest": "sha256:c40801f54a4b16bb584a6187f981db5e2a10a0fdd66391fe535b131c35f7c406",
+  "os": "linux",
+  "architecture": "amd64",
+  "format": 2,
+  "kind": "release",
+  "storage": "docker-named-volumes",
+  "entrypoint_sha256": "9b2eafebd953c4cf3f419199d79685c282600face47fb94fee8cc07f95d79510",
+  "image_id": "sha256:c40801f54a4b16bb584a6187f981db5e2a10a0fdd66391fe535b131c35f7c406",
+  "source_commit": "cb3a96e8546844416258c1af64549724685eeb04",
+  "document_commit": "cb3a96e8546844416258c1af64549724685eeb04",
+  "code_commit": "1bd3f6c088466c8b46b447c9516cec623bc194f6",
+  "lock_sha256": "671963de571dfc611e7f370482640455928bde108ed0e7c9383fd633f090d7ed",
+  "build_config_sha256": "8331f28f55ea2bc785315c5da166c4fbf54887d9414504a17ed3f42c5f184bdb",
+  "source_manifest_sha256": "46ad2d97bdc2c2fcb0f9b8811b9424886091ed71a81b9c17924cf62f9990b186",
+  "relay_sha256": "69a4d687d6f89183c72d20dfcec1675a4d6324170e73917343ccdee85c47cea7",
+  "archive": "nkustudy-webobsidian-4b-1bd3f6c-r2-linux-amd64.tar",
+  "archive_sha256": "c2a1839b9037784695a6e8ecfeba036a4f5ae4c3cd98ce561c09b9e5617d3beb"
+}

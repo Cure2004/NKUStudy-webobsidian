@@ -1,0 +1,13 @@
+import {spawn} from 'node:child_process';
+import {createWriteStream} from 'node:fs';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const [name,...argv]=process.argv.slice(2);
+if (!name || !argv.length || !/^[a-zA-Z0-9_-]+$/.test(name)) throw Error('usage: run-command name command args');
+const dir=resolve('docs/nkustudy/4b-preflight/evidence/build'); await mkdir(dir,{recursive:true});
+const started=new Date().toISOString(), begin=performance.now();
+const stream=createWriteStream(`${dir}/${name}.log`,{flags:'wx'});
+const child=spawn(argv[0],argv.slice(1),{env:process.env,stdio:['ignore','pipe','pipe']});
+child.stdout.pipe(stream,{end:false});child.stderr.pipe(stream,{end:false});
+child.on('error',e=>stream.write(String(e)));
+child.on('close',async(code,signal)=>{stream.end();const receipt={argv,cwd:process.cwd(),started,ended:new Date().toISOString(),elapsedSeconds:(performance.now()-begin)/1000,exitCode:code,signal,node:process.version,platform:process.platform,arch:process.arch};await writeFile(`${dir}/${name}.json`,JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt));process.exitCode=code??1;});

@@ -1,16 +1,36 @@
-node_modules
+# Default deny. Only build inputs are sent, even in a dirty checkout.
+**
+!Dockerfile
+!.dockerignore
+!package.json
+!package-lock.json
+!server/
+!server/package.json
+!server/tsconfig.json
+!server/src/
+!server/src/**
+!web/
+!web/package.json
+!web/index.html
+!web/tsconfig*.json
+!web/vite.config.ts
+!web/src/
+!web/src/**
+!web/public/
+!web/public/**
+!desktop/
+!desktop/package.json
+!scripts/
+!scripts/4b/
+!scripts/4b/container-entrypoint.sh
+# Deny secret/backup names even under allowed source trees.
+**/.env*
+**/*.pem
+**/*.key
+**/id_rsa*
+**/id_ed25519*
+**/*.zip
+**/*.tar*
+**/*.bak
 **/node_modules
-server/dist
-server/public
-web/dist
-data
-.git
-*.log
-.DS_Store
-sample-vault
-# The vault is bind-mounted at runtime (VAULT_HOST_PATH) — never bake the
-# multi-GB obsvault LFS clone into the build context, or `COPY . .` crawls.
-obsvault
-*.tsbuildinfo
-desktop/dist
-desktop/release
+**/.git
