@@ -1,0 +1,19 @@
+{
+  "deployment_version": "r3-https-20261023",
+  "trust_proxy": 1,
+  "image_release": "r2 unchanged",
+  "deployment_files": {
+    "deploy.py": "02cbd9645e37f1102708276baae15faaf721facbadbaf2bed8f51599512ae114",
+    "validate_runtime.py": "85f9e69b5461fddd2438e61c8cc54c4ee1138a21b29df924ce34abd074e8b343",
+    "offline.sh": "841bd025f9c943d4ab47432defb9ef2a437aedb89f5a1909309fdc0385a98cdc",
+    "manifest.py": "e57d67a7ec9768818253c2f1a623090920fa578aaa38e326d82a53d4f7f5d59d",
+    "storage.py": "f54e5c1031f23b74781c5e8c86e0625e7da700b903baef3d2b1c398c3efe2674",
+    "snapshot.py": "fb7e80779c0c1e9d7a4c4e644d124199714ae0ef676e3a379f24057ea5468590",
+    "verify-package.py": "b504d97768658fd4fdaf57f493f204bb429936ed17e800f94aa25d24a3f58cc0",
+    "Caddyfile.preview.example": "c4d4c251d3d845b2a06978df28ccb42829385db6a02b67758ce9c79cfae0b842",
+    "release.json": "df95a82df9514927f57cc26f59917be0e206291107e64b5382a3d8b7a0875d50"
+  },
+  "r2_SHA256SUMS_sha256": "cdf727f608c5d041f30842a5f4fd1a3dbac0a255b09f509e509d602268ff1c50",
+  "required_topology": "Caddy HTTPS with header sanitization -> host loopback -> fixed TCP relay -> isolated app",
+  "server_status": "not deployed; existing Caddy configuration not inspected"
+}

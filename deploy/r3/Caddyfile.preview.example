@@ -1,0 +1,25 @@
+# Review template only. Do not replace the production Caddyfile with this file.
+# Reuse the existing account/hash through the service's protected environment.
+wiki-preview.nkustudy.top {
+    route {
+        basic_auth {
+            {$NKU_PREVIEW_USER} {$NKU_PREVIEW_PASSWORD_HASH}
+        }
+        # r2 WS checks host but omits scheme. Reject mismatched nonempty Origins.
+        # Origin is preserved unchanged. Non-browser clients still need both auth layers.
+        @bad_ws_origin {
+            path /ws
+            header Origin *
+            not header Origin https://wiki-preview.nkustudy.top
+        }
+        respond @bad_ws_origin 403
+        reverse_proxy 127.0.0.1:28787 {
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {hostport}
+            header_up X-Forwarded-For {remote_host}
+            header_up -Forwarded
+            header_up -Authorization
+            header_up -Proxy-Authorization
+        }
+    }
+}
