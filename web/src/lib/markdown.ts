@@ -9,11 +9,12 @@ import rehypeStringify from 'rehype-stringify';
 import { CALLOUT_RE, calloutTypeSlot, calloutDefaultTitle } from './callouts';
 import { VIDEO_EXT_RE, AUDIO_EXT_RE } from './media';
 import { transformWikiComponents } from './wikiComponents';
+import { rehypeWikiLayout } from './wikiLayout';
 
 // Sanitize schema extended to keep the attributes our wikilinks/callouts use.
 // 注意：刻意不放行 `style`。公开编辑模式下笔记内容来自任意访客，任意 CSS 可以
 // 用 position:fixed 覆盖层伪造编辑器 UI（对查看预览的 owner 做界面钓鱼）；
-// 站点自身的排版全部走 className + 样式表，内联 style 并非必需。
+// 组件参数经 data 属性传递，消毒后仅重建经过严格校验的布局变量。
 const schema = {
   ...defaultSchema,
   attributes: {
@@ -28,8 +29,8 @@ const schema = {
       ['target'],
       ['rel'],
     ],
-    div: [...(defaultSchema.attributes?.div ?? []), ['className'], ['dataCallout'], ['dataCalloutFold'], ['role']],
-    span: [...(defaultSchema.attributes?.span ?? []), ['className'], ['dataTex'], ['dataTexDisplay'], ['dataCalloutIcon']],
+    div: [...(defaultSchema.attributes?.div ?? []), ['className'], ['dataCallout'], ['dataCalloutFold'], ['role'], ['dataNkuCardWidth'], ['dataNkuGalleryGap'], ['dataNkuGalleryHeight']],
+    span: [...(defaultSchema.attributes?.span ?? []), ['className'], ['dataTex'], ['dataTexDisplay'], ['dataCalloutIcon'], ['dataNkuLines']],
     li: [...(defaultSchema.attributes?.li ?? []), ['className'], ['dataTask']],
     input: [['type'], ['checked'], ['disabled'], ['className'], ['dataTask']],
     img: [...(defaultSchema.attributes?.img ?? []), ['src'], ['alt'], ['dataEmbed'], ['loading'], ['width'], ['height']],
@@ -99,6 +100,7 @@ const processor = unified()
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
   .use(rehypeSanitize, schema as any)
+  .use(rehypeWikiLayout)
   .use(rehypeStringify);
 
 const esc = (s: string) =>
