@@ -1231,7 +1231,9 @@ function sanitizeHtml(html: string): string {
     }
     for (const attr of Array.from(el.attributes)) {
       const n = attr.name.toLowerCase();
-      if (n.startsWith('on')) el.removeAttribute(attr.name);
+      // style 与 Reading 视图的 rehype-sanitize schema 同口径剥离：任意 CSS 可用
+      // position:fixed 覆盖层伪造编辑器 UI，公开编辑模式下笔记 HTML 来自任意访客
+      if (n.startsWith('on') || n === 'style') el.removeAttribute(attr.name);
       else if ((n === 'href' || n === 'src' || n === 'xlink:href') && /^\s*javascript:/i.test(attr.value)) {
         el.removeAttribute(attr.name);
       }
