@@ -35,13 +35,13 @@ const safeUploadName = (name: string): string => {
 // 访客（公开编辑）只能改动 publicEditor.editableRoot 下的路径；
 // 校验逻辑见 services/guestpath.ts（路径口径：相对内容根）。
 
-/** 递归裁剪文件树：文件保留可读项，文件夹保留仍含可读后代的分支。 */
+/** 递归裁剪文件树：文件保留可读项，文件夹自身可读或含可读后代时保留（包括空目录）。 */
 function filterTreeNodes(nodes: TreeNode[], readable: Set<string>): TreeNode[] {
   const out: TreeNode[] = [];
   for (const node of nodes) {
     if (node.type === 'folder') {
       const children = filterTreeNodes(node.children ?? [], readable);
-      if (children.length) out.push({ ...node, children });
+      if (readable.has(node.path) || children.length) out.push({ ...node, children });
     } else if (readable.has(node.path)) {
       out.push(node);
     }
@@ -54,8 +54,8 @@ async function filterTreeForGuest(tree: TreeNode): Promise<TreeNode> {
   const readable = new Set<string>();
   const collect = async (nodes: TreeNode[]): Promise<void> => {
     for (const node of nodes) {
+      if (await isGuestReadable(node.path)) readable.add(node.path);
       if (node.type === 'folder') await collect(node.children ?? []);
-      else if (await isGuestReadable(node.path)) readable.add(node.path);
     }
   };
   await collect(tree.children ?? []);

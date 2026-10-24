@@ -1,11 +1,13 @@
 import { Router } from 'express';
+import { promises as fs } from 'node:fs';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth, denyGuest } from '../middleware/auth.js';
 import { qmd } from '../services/search.js';
-import { backlinksFor, graphData, resolveLink, buildLinkGraph } from '../services/links.js';
+import { backlinksFor, graphData, resolveLink, buildLinkGraph, graphDataForNotes } from '../services/links.js';
 import { resolveFile } from '../services/fileindex.js';
 import { readPropertyTypes, setPropertyType } from '../services/propertytypes.js';
 import { isGuestReadable } from '../services/guestpath.js';
+import * as vault from '../services/vault.js';
 
 export const searchRouter = Router();
 searchRouter.use(requireAuth);
@@ -123,14 +125,32 @@ searchRouter.get(
 searchRouter.get(
   '/graph',
   asyncHandler(async (req, res) => {
-    const data = graphData();
-    // 访客的关系图只含可读节点：整库的知识结构（标题、链接关系）不该匿名可见
+    let data = graphData();
     if (req.sessionRole === 'guest') {
-      const nodes = data.nodes ?? [];
-      const verdicts = await Promise.all(nodes.map((n) => isGuestReadable(String(n.id))));
-      const allowed = new Set(nodes.filter((_, i) => verdicts[i]).map((n) => String(n.id)));
-      data.nodes = nodes.filter((n) => allowed.has(String(n.id)));
-      data.edges = (data.edges ?? []).filter((e) => allowed.has(String(e.source)) && allowed.has(String(e.target)));
+      const notes = data.nodes.filter((node) => node.kind === 'note');
+      const verdicts = await Promise.all(notes.map((node) => isGuestReadable(node.id)));
+      const readableNotes = new Set(notes.filter((_, i) => verdicts[i]).map((node) => node.id));
+      // Synthetic attachment:/unresolved: IDs are not vault paths. Rebuild from
+      // readable source notes so private sources cannot contribute labels/edges.
+      const scoped = graphDataForNotes(readableNotes);
+      data = scoped.data;
+      const allowed = new Set(data.nodes.filter((node) => node.kind !== 'attachment').map((node) => node.id));
+      for (const [id, targets] of scoped.attachmentTargets) {
+        for (const target of targets) {
+          try {
+            // Match /files/content: exact path first, then indexed basename.
+            // Never authorize the lowercased graph ID on case-sensitive volumes.
+            let rel = await vault.canonicalRelativePath(target);
+            if (!(await vault.exists(rel))) rel = resolveFile(rel) ?? '';
+            if (rel && await isGuestReadable(rel) && (await fs.stat(await vault.resolveInVault(rel))).isFile()) {
+              allowed.add(id);
+              break;
+            }
+          } catch { /* Missing, private, symlink or malformed attachment: omit it. */ }
+        }
+      }
+      data.nodes = data.nodes.filter((node) => allowed.has(node.id));
+      data.edges = data.edges.filter((edge) => allowed.has(edge.source) && allowed.has(edge.target));
     }
     res.json(data);
   }),
